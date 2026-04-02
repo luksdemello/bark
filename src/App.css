@@ -29,7 +29,7 @@ html, body {
 }
 
 #root {
-  background-color: #f6f6f6;
+  background-color: transparent;
   border-radius: 8px;
   min-height: 100vh;
   overflow: hidden;
@@ -116,7 +116,7 @@ button {
   }
 
   #root {
-    background-color: #2f2f2f;
+    background-color: transparent;
   }
 
   a:hover {

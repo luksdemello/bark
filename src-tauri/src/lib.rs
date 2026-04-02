@@ -4,6 +4,7 @@ use tauri::{
     WindowEvent
 };
 use tauri_plugin_positioner::{WindowExt, Position};
+use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial, NSVisualEffectState};
 
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -21,6 +22,10 @@ pub fn run() {
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
             if let Some(window) = app.get_webview_window("tray-window") {
+                #[cfg(target_os = "macos")]
+                apply_vibrancy(&window, NSVisualEffectMaterial::HudWindow, Some(NSVisualEffectState::Active), Some(8.0))
+                    .expect("Unsupported platform! 'apply_vibrancy' is only supported on macOS");
+
                 window.on_window_event(|event| {
                     if let WindowEvent::Focused(false) = event {
                     }
@@ -46,7 +51,9 @@ pub fn run() {
                             if is_visible {
                                 let _ = window.hide();
                             } else {
-                                let _ = window.move_window(Position::TrayBottomCenter);
+                                let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                                    let _ = window.move_window(Position::TrayBottomCenter);
+                                }));
 
                                 #[cfg(target_os = "macos")]
                                 let _ = app.show();
