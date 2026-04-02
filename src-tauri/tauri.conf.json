@@ -14,12 +14,14 @@
       {
         "title": "clipboard_widget",
         "label": "tray-window",
-        "width": 300,
-        "height": 200,
+        "width": 280,
+        "height": 354,
         "resizable": false,
         "decorations": false,
         "alwaysOnTop": true,
-        "visible": false
+        "visible": false,
+        "focus": false,
+        "skipTaskbar": true
       }
     ],
     "security": {

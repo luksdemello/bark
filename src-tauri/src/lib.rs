@@ -20,11 +20,9 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
-            // 🔥 Impede fechar ao perder foco
             if let Some(window) = app.get_webview_window("tray-window") {
                 window.on_window_event(|event| {
                     if let WindowEvent::Focused(false) = event {
-                        // Não faz nada → mantém janela aberta
                     }
                 });
             }
@@ -33,7 +31,8 @@ pub fn run() {
                 .icon(tauri::include_image!("icons/icon.png"))
                 .tooltip("Jimmy Widget")
                 .on_tray_icon_event(|tray, event| {
-                    // ✅ Corrige bug de abrir e fechar no mesmo clique
+                    tauri_plugin_positioner::on_tray_event(tray.app_handle(), &event);
+
                     if let TrayIconEvent::Click {
                         button: MouseButton::Left,
                         button_state: MouseButtonState::Up,
