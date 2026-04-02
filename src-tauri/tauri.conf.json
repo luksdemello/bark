@@ -10,6 +10,7 @@
     "frontendDist": "../dist"
   },
   "app": {
+    "macOSPrivateApi": true,
     "windows": [
       {
         "title": "clipboard_widget",
@@ -21,7 +22,8 @@
         "alwaysOnTop": true,
         "visible": false,
         "focus": false,
-        "skipTaskbar": true
+        "skipTaskbar": true,
+        "transparent": true
       }
     ],
     "security": {
