@@ -13,7 +13,7 @@
     "macOSPrivateApi": true,
     "windows": [
       {
-        "title": "clipboard_widget",
+        "title": "Bark",
         "label": "tray-window",
         "width": 280,
         "height": 354,

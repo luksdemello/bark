@@ -34,7 +34,7 @@ pub fn run() {
 
             TrayIconBuilder::new()
                 .icon(tauri::include_image!("icons/icon.png"))
-                .tooltip("Jimmy Widget")
+                .tooltip("Bark")
                 .on_tray_icon_event(|tray, event| {
                     tauri_plugin_positioner::on_tray_event(tray.app_handle(), &event);
 
