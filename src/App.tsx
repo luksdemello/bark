@@ -1,35 +1,42 @@
-import { useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import "./App.css";
 
 type ClipboardItem = {
   id: number;
-  type: "text" | "image" | "link";
-  content: string;
-  time: string;
+  content_type: "text" | "image";
+  text_content: string | null;
+  image_path: string | null;
+  image_thumb_base64: string | null;
+  created_at: number;
+  last_copied_at: number | null;
 };
 
-const mockItems: ClipboardItem[] = [
-  {
-    id: 1,
-    type: "text",
-    content: "Exemplo de texto copiado",
-    time: "7m atrás",
-  },
-  {
-    id: 2,
-    type: "image",
-    content: "https://picsum.photos/seed/demo/240/100",
-    time: "17m atrás",
-  },
-  {
-    id: 3,
-    type: "link",
-    content: "https://github.com/example/repo",
-    time: "32m atrás",
-  },
-];
+type DisplayType = "text" | "image" | "link";
 
-function ClipboardIcon({ type }: { type: ClipboardItem["type"] }) {
+function getDisplayType(item: ClipboardItem): DisplayType {
+  if (item.content_type === "image") return "image";
+  if (
+    item.text_content &&
+    (item.text_content.startsWith("http://") ||
+      item.text_content.startsWith("https://"))
+  ) {
+    return "link";
+  }
+  return "text";
+}
+
+function formatTime(timestamp: number): string {
+  const now = Math.floor(Date.now() / 1000);
+  const diff = now - timestamp;
+  if (diff < 60) return "agora";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m atrás`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h atrás`;
+  return `${Math.floor(diff / 86400)}d atrás`;
+}
+
+function ClipboardIcon({ type }: { type: DisplayType }) {
   if (type === "image") {
     return (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -85,57 +92,149 @@ function UploadIcon() {
   );
 }
 
+const PAGE_SIZE = 20;
+
 function App() {
+  const [items, setItems] = useState<ClipboardItem[]>([]);
   const [hoveredId, setHoveredId] = useState<number | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const loadItems = useCallback(async (pageNum: number, append: boolean) => {
+    setLoading(true);
+    try {
+      const result = await invoke<ClipboardItem[]>("get_clipboard_history", {
+        page: pageNum,
+        limit: PAGE_SIZE,
+      });
+      if (append) {
+        setItems((prev) => [...prev, ...result]);
+      } else {
+        setItems(result);
+      }
+      setHasMore(result.length === PAGE_SIZE);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Initial load
+  useEffect(() => {
+    loadItems(0, false);
+  }, [loadItems]);
+
+  // Listen for new clipboard items
+  useEffect(() => {
+    const unlisten = listen<ClipboardItem>("clipboard://new-item", (event) => {
+      setItems((prev) => [event.payload, ...prev]);
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []);
+
+  // Scroll-based pagination
+  const handleScroll = useCallback(() => {
+    const el = listRef.current;
+    if (!el || loading || !hasMore) return;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 50) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      loadItems(nextPage, true);
+    }
+  }, [loading, hasMore, page, loadItems]);
+
+  const handleCopy = async (id: number) => {
+    await invoke("copy_item", { id });
+  };
+
+  const handleDelete = async (id: number) => {
+    await invoke("delete_item", { id });
+    setItems((prev) => prev.filter((item) => item.id !== id));
+  };
 
   return (
     <div className="widget">
       {/* Header */}
       <header className="widget-header">
         <div className="header-left">
-          <img src="/src/assets/dog_colored.svg" alt="Bark" width="24" height="24" />
+          <img
+            src="/src/assets/dog_colored.svg"
+            alt="Bark"
+            width="24"
+            height="24"
+          />
           <span className="header-title">Bark</span>
           <span className="header-subtitle">Clipboard & File Sharing</span>
         </div>
       </header>
 
       {/* Clipboard List */}
-      <div className="clipboard-list">
-        {mockItems.map((item) => (
-          <div
-            key={item.id}
-            className="clipboard-item"
-            onMouseEnter={() => setHoveredId(item.id)}
-            onMouseLeave={() => setHoveredId(null)}
-          >
-            <div className="item-icon">
-              <ClipboardIcon type={item.type} />
-            </div>
-            <div className="item-content">
-              {item.type === "image" ? (
-                <img
-                  src={item.content}
-                  alt="Imagem copiada"
-                  className="item-image"
-                />
-              ) : (
-                <span className="item-text">{item.content}</span>
-              )}
-              <span className="item-time">{item.time}</span>
-            </div>
-            <div
-              className={`item-actions ${hoveredId === item.id ? "visible" : ""}`}
-            >
-              <button className="action-btn copy-btn" title="Copiar">
-                <CopyIcon />
-              </button>
-              <button className="action-btn delete-btn" title="Deletar">
-                <DeleteIcon />
-              </button>
-            </div>
+      <div className="clipboard-list" ref={listRef} onScroll={handleScroll}>
+        {items.length === 0 && !loading && (
+          <div className="empty-state">
+            <span className="empty-text">Nenhum item no clipboard</span>
+            <span className="empty-subtext">
+              Copie algo para começar
+            </span>
           </div>
-        ))}
+        )}
+        {items.map((item) => {
+          const displayType = getDisplayType(item);
+          return (
+            <div
+              key={item.id}
+              className="clipboard-item"
+              onMouseEnter={() => setHoveredId(item.id)}
+              onMouseLeave={() => setHoveredId(null)}
+            >
+              <div className="item-icon">
+                <ClipboardIcon type={displayType} />
+              </div>
+              <div className="item-content">
+                {item.content_type === "image" ? (
+                  item.image_thumb_base64 ? (
+                    <img
+                      src={`data:image/png;base64,${item.image_thumb_base64}`}
+                      alt="Imagem copiada"
+                      className="item-image"
+                    />
+                  ) : (
+                    <span className="item-text">[Imagem]</span>
+                  )
+                ) : (
+                  <span className="item-text">
+                    {item.text_content || ""}
+                  </span>
+                )}
+                <span className="item-time">
+                  {formatTime(item.created_at)}
+                </span>
+              </div>
+              <div
+                className={`item-actions ${hoveredId === item.id ? "visible" : ""}`}
+              >
+                <button
+                  className="action-btn copy-btn"
+                  title="Copiar"
+                  onClick={() => handleCopy(item.id)}
+                >
+                  <CopyIcon />
+                </button>
+                <button
+                  className="action-btn delete-btn"
+                  title="Deletar"
+                  onClick={() => handleDelete(item.id)}
+                >
+                  <DeleteIcon />
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Drop Zone */}
