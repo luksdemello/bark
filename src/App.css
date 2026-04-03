@@ -281,6 +281,6 @@ html, body {
   color: #71717a;
 }
 
-.quit-btn:hover {
+.header-btn.quit-btn:hover {
   color: #ef4444;
 }
