@@ -70,7 +70,7 @@ pub fn run() {
                 .icon(tauri::include_image!("icons/tray_normal.png"))
                 .tooltip("Bark")
                 .menu(&tray_menu)
-                .menu_on_left_click(false)
+                .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| {
                     if event.id() == "quit" {
                         app.exit(0);
