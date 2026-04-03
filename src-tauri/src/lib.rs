@@ -1,3 +1,5 @@
+mod db;
+
 use tauri::{
     Manager,
     tray::{TrayIconBuilder, TrayIconEvent, MouseButton, MouseButtonState},
