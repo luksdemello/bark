@@ -206,7 +206,7 @@ function App() {
         });
         if (result.length === 0) return;
         const latestId = result[0].id;
-        if (latestIdRef.current !== null && latestId !== latestIdRef.current) {
+        if (latestId !== latestIdRef.current) {
           setPage(0);
           loadItems(0, false);
         }
