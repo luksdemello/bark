@@ -6,6 +6,7 @@ mod tray_animation;
 use db::Database;
 use std::sync::Arc;
 use tauri::{
+    menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     Manager, WindowEvent,
 };
@@ -25,6 +26,7 @@ pub fn run() {
             commands::clear_history,
             commands::get_settings,
             commands::update_settings,
+            commands::quit_app,
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]
@@ -59,10 +61,20 @@ pub fn run() {
                 });
             }
 
+            // Tray context menu
+            let quit_item = MenuItem::with_id(app, "quit", "Encerrar Bark", true, None::<&str>)?;
+            let tray_menu = Menu::with_items(app, &[&quit_item])?;
+
             // Tray icon
             TrayIconBuilder::with_id("bark-tray")
                 .icon(tauri::include_image!("icons/tray_normal.png"))
                 .tooltip("Bark")
+                .menu(&tray_menu)
+                .on_menu_event(|app, event| {
+                    if event.id() == "quit" {
+                        app.exit(0);
+                    }
+                })
                 .on_tray_icon_event(|tray: &tauri::tray::TrayIcon, event| {
                     tauri_plugin_positioner::on_tray_event(tray.app_handle(), &event);
 
