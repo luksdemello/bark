@@ -127,7 +127,8 @@ Antes de inserir, verificar se o último item é idêntico:
 
 ### Auto-limpeza
 
-Quando um item de imagem é deletado (manual ou por limite), o arquivo PNG correspondente é removido do disco.
+- Quando um item de imagem é deletado (manual ou por limite), o arquivo PNG correspondente é removido do disco.
+- **Expiração de 24h:** itens que não forem copiados dentro de 24 horas são automaticamente removidos do histórico. Uma tarefa periódica (a cada 5 minutos) verifica e remove itens expirados.
 
 ## Animação do Tray Icon
 
