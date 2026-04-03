@@ -92,6 +92,15 @@ function UploadIcon() {
   );
 }
 
+function QuitIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
+
 const PAGE_SIZE = 20;
 
 function App() {
@@ -169,6 +178,15 @@ function App() {
           />
           <span className="header-title">Bark</span>
           <span className="header-subtitle">Clipboard & File Sharing</span>
+        </div>
+        <div className="header-actions">
+          <button
+            className="header-btn quit-btn"
+            title="Encerrar Bark"
+            onClick={() => invoke("quit_app")}
+          >
+            <QuitIcon />
+          </button>
         </div>
       </header>
 

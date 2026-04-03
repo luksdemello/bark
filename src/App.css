@@ -276,3 +276,11 @@ html, body {
   color: #52525b;
   font-size: 11px;
 }
+
+.quit-btn {
+  color: #71717a;
+}
+
+.quit-btn:hover {
+  color: #ef4444;
+}
