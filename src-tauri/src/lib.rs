@@ -1,5 +1,7 @@
+mod commands;
 mod db;
 mod monitor;
+mod tray_animation;
 
 use tauri::{
     Manager,
