@@ -102,3 +102,8 @@ pub fn update_settings(db: State<'_, Arc<Database>>, max_items: u32) -> Result<(
     }
     Ok(())
 }
+
+#[tauri::command]
+pub fn quit_app(app: tauri::AppHandle) {
+    app.exit(0);
+}
