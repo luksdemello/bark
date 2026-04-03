@@ -1,4 +1,3 @@
-use tauri::Manager;
 use std::time::Duration;
 
 pub fn animate_ears(app: tauri::AppHandle) {
