@@ -8,7 +8,7 @@ use std::sync::Arc;
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Manager, WindowEvent,
+    Emitter, Manager, WindowEvent,
 };
 use tauri_plugin_positioner::{Position, WindowExt};
 use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial, NSVisualEffectState};
@@ -70,6 +70,7 @@ pub fn run() {
                 .icon(tauri::include_image!("icons/tray_normal.png"))
                 .tooltip("Bark")
                 .menu(&tray_menu)
+                .menu_on_left_click(false)
                 .on_menu_event(|app, event| {
                     if event.id() == "quit" {
                         app.exit(0);
@@ -103,6 +104,7 @@ pub fn run() {
 
                                 let _ = window.show();
                                 let _ = window.set_focus();
+                                let _ = app.emit("window-shown", ());
                             }
                         }
                     }

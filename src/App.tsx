@@ -111,6 +111,7 @@ function App() {
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
+  const latestIdRef = useRef<number | null>(null);
 
   const loadItems = useCallback(async (pageNum: number, append: boolean) => {
     setLoading(true);
@@ -123,6 +124,9 @@ function App() {
         setItems((prev) => [...prev, ...result]);
       } else {
         setItems(result);
+        if (!append && pageNum === 0 && result.length > 0) {
+          latestIdRef.current = result[0].id;
+        }
       }
       setHasMore(result.length === PAGE_SIZE);
     } finally {
@@ -144,6 +148,40 @@ function App() {
       unlisten.then((fn) => fn());
     };
   }, []);
+
+  // Reload when window becomes visible (events may be missed while hidden)
+  useEffect(() => {
+    const unlisten = listen("window-shown", () => {
+      setPage(0);
+      loadItems(0, false);
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [loadItems]);
+
+  // Polling fallback: check for new items every 500ms (covers cases where
+  // the clipboard monitor event doesn't fire while the window is open)
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const result = await invoke<ClipboardItem[]>("get_clipboard_history", {
+          page: 0,
+          limit: 1,
+        });
+        if (result.length === 0) return;
+        const latestId = result[0].id;
+        if (latestIdRef.current !== null && latestId !== latestIdRef.current) {
+          setPage(0);
+          loadItems(0, false);
+        }
+        latestIdRef.current = latestId;
+      } catch {
+        // ignore
+      }
+    }, 500);
+    return () => clearInterval(interval);
+  }, [loadItems]);
 
   // Scroll-based pagination
   const handleScroll = useCallback(() => {
