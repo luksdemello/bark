@@ -14,6 +14,40 @@ type ClipboardItem = {
 };
 
 type DisplayType = "text" | "image" | "link";
+type EarState = "normal" | "up" | "down";
+
+const EAR_PATHS: Record<EarState, { left: string; right: string }> = {
+  normal: {
+    left:  "M6 4C5.5 4 5 5 5 6.5C5 8 5.5 9 6 9C6.5 9 7 8 7 6.5C7 5 6.5 4 6 4Z",
+    right: "M18 4C17.5 4 17 5 17 6.5C17 8 17.5 9 18 9C18.5 9 19 8 19 6.5C19 5 18.5 4 18 4Z",
+  },
+  up: {
+    left:  "M6 2C5.5 2 5 3 5 4.5C5 6 5.5 7 6 7C6.5 7 7 6 7 4.5C7 3 6.5 2 6 2Z",
+    right: "M18 2C17.5 2 17 3 17 4.5C17 6 17.5 7 18 7C18.5 7 19 6 19 4.5C19 3 18.5 2 18 2Z",
+  },
+  down: {
+    left:  "M6 6C5.5 6 5 7 5 8.5C5 10 5.5 11 6 11C6.5 11 7 10 7 8.5C7 7 6.5 6 6 6Z",
+    right: "M18 6C17.5 6 17 7 17 8.5C17 10 17.5 11 18 11C18.5 11 19 10 19 8.5C19 7 18.5 6 18 6Z",
+  },
+};
+
+function DogIcon({ ears }: { ears: EarState }) {
+  const { left, right } = EAR_PATHS[ears];
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d={left}  fill="#8B4513" />
+      <path d={right} fill="#8B4513" />
+      <ellipse cx="12" cy="11" rx="7" ry="6" fill="#A0522D" />
+      <ellipse cx="12" cy="14" rx="4" ry="3.5" fill="#DEB887" />
+      <ellipse cx="12" cy="14" rx="1.5" ry="1.2" fill="#333333" />
+      <circle cx="9.5" cy="10" r="1" fill="#000000" />
+      <circle cx="14.5" cy="10" r="1" fill="#000000" />
+      <path d="M8 15C7 15 6 16 6 18C6 20 7 21 8 21H16C17 21 18 20 18 18C18 16 17 15 16 15H8Z" fill="#A0522D" />
+      <rect x="8" y="20" width="2" height="3" rx="1" fill="#8B4513" />
+      <rect x="14" y="20" width="2" height="3" rx="1" fill="#8B4513" />
+    </svg>
+  );
+}
 
 function getDisplayType(item: ClipboardItem): DisplayType {
   if (item.content_type === "image") return "image";
@@ -105,6 +139,7 @@ const PAGE_SIZE = 20;
 
 function App() {
   const [items, setItems] = useState<ClipboardItem[]>([]);
+  const [ears, setEars] = useState<EarState>("normal");
   const [hoveredId, setHoveredId] = useState<number | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [page, setPage] = useState(0);
@@ -194,8 +229,18 @@ function App() {
     }
   }, [loading, hasMore, page, loadItems]);
 
+  const animateEars = useCallback(() => {
+    const frames: [EarState, number][] = [["up", 150], ["down", 150], ["up", 150], ["normal", 0]];
+    let delay = 0;
+    for (const [state, ms] of frames) {
+      setTimeout(() => setEars(state), delay);
+      delay += ms;
+    }
+  }, []);
+
   const handleCopy = async (id: number) => {
     await invoke("copy_item", { id });
+    animateEars();
   };
 
   const handleDelete = async (id: number) => {
@@ -208,12 +253,7 @@ function App() {
       {/* Header */}
       <header className="widget-header">
         <div className="header-left">
-          <img
-            src="/src/assets/dog_colored.svg"
-            alt="Bark"
-            width="24"
-            height="24"
-          />
+          <DogIcon ears={ears} />
           <span className="header-title">Bark</span>
           <span className="header-subtitle">Clipboard & File Sharing</span>
         </div>

@@ -68,6 +68,7 @@ pub fn run() {
             // Tray icon
             TrayIconBuilder::with_id("bark-tray")
                 .icon(tauri::include_image!("icons/tray_normal.png"))
+                .icon_as_template(false)
                 .tooltip("Bark")
                 .menu(&tray_menu)
                 .show_menu_on_left_click(false)
