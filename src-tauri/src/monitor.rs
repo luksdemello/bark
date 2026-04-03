@@ -54,11 +54,9 @@ fn handle_text(app: &AppHandle, clipboard: &Clipboard, db: &Arc<Database>) -> bo
         _ => return false,
     };
 
-    // Deduplication: skip if identical to last item
-    if let Ok(Some(last)) = db.get_last_item() {
-        if last.content_type == "text" && last.text_content.as_deref() == Some(&text) {
-            return true;
-        }
+    // Deduplication: skip if text already exists anywhere in history
+    if db.text_exists(&text) {
+        return true;
     }
 
     if let Ok(item) = db.insert_item("text", Some(&text), None, None) {

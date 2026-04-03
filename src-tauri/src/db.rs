@@ -63,6 +63,15 @@ impl Database {
         })
     }
 
+    pub fn text_exists(&self, text: &str) -> bool {
+        let conn = self.conn.lock().unwrap();
+        conn.query_row(
+            "SELECT EXISTS(SELECT 1 FROM clipboard_items WHERE content_type = 'text' AND text_content = ?1)",
+            params![text],
+            |row| row.get::<_, bool>(0),
+        ).unwrap_or(false)
+    }
+
     pub fn get_last_item(&self) -> Result<Option<ClipboardItem>, rusqlite::Error> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
