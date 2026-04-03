@@ -1,4 +1,5 @@
 mod db;
+mod monitor;
 
 use tauri::{
     Manager,
