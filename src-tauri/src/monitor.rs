@@ -40,7 +40,13 @@ pub fn start(app: &AppHandle, db: Arc<Database>, images_dir: PathBuf) {
     let image_app = app.clone();
     tauri::async_runtime::spawn(async move {
         while let Some(job) = rx.recv().await {
-            use_cases::save_image(&image_app, &image_db, job.bytes, &job.images_dir);
+            let db = image_db.clone();
+            let app = image_app.clone();
+            tauri::async_runtime::spawn_blocking(move || {
+                use_cases::save_image(&app, &db, job.bytes, &job.images_dir);
+            })
+            .await
+            .ok();
         }
     });
 
@@ -52,11 +58,12 @@ pub fn start(app: &AppHandle, db: Arc<Database>, images_dir: PathBuf) {
             if types.image {
                 if let Ok(bytes) = clipboard.read_image_binary() {
                     if !bytes.is_empty() {
-                        tx.try_send(ImageJob {
+                        if let Err(e) = tx.try_send(ImageJob {
                             bytes,
                             images_dir: images_dir.clone(),
-                        })
-                        .ok();
+                        }) {
+                            eprintln!("[bark] image clipboard event dropped: {}", e);
+                        }
                     }
                 }
             } else if types.text {
@@ -76,11 +83,12 @@ pub fn start(app: &AppHandle, db: Arc<Database>, images_dir: PathBuf) {
             }
             if let Ok(bytes) = clipboard.read_image_binary() {
                 if !bytes.is_empty() {
-                    tx.try_send(ImageJob {
+                    if let Err(e) = tx.try_send(ImageJob {
                         bytes,
                         images_dir: images_dir.clone(),
-                    })
-                    .ok();
+                    }) {
+                        eprintln!("[bark] image clipboard event dropped: {}", e);
+                    }
                 }
             }
         }
