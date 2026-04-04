@@ -46,7 +46,7 @@ export async function uploadAndShare(filePath: string): Promise<string> {
 
   if (signedUrlError || !data?.signedUrl) {
     throw new Error(
-      `Failed to generate link: ${signedUrlError?.message ?? "Erro desconhecido"}`
+      `Failed to generate link: ${signedUrlError?.message ?? "Unknown error"}`
     );
   }
 
