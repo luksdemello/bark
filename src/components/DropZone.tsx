@@ -8,7 +8,7 @@ interface DropZoneProps {
 }
 
 export function DropZone({ filename, progress, onDrop }: DropZoneProps) {
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, noClick: true });
 
   return (
     <footer
