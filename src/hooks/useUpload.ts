@@ -1,9 +1,17 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 
 export function useUpload() {
   const [filename, setFilename] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const intervalRef = useRef<number | null>(null);
+  const resetRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current !== null) clearInterval(intervalRef.current);
+      if (resetRef.current !== null) clearTimeout(resetRef.current);
+    };
+  }, []);
 
   const onDrop = useCallback((files: File[]) => {
     if (files.length === 0) return;
@@ -11,6 +19,10 @@ export function useUpload() {
     if (intervalRef.current !== null) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
+    }
+    if (resetRef.current !== null) {
+      clearTimeout(resetRef.current);
+      resetRef.current = null;
     }
 
     const file = files[0];
@@ -21,10 +33,12 @@ export function useUpload() {
     intervalRef.current = window.setInterval(() => {
       current += 5;
       if (current >= 100) {
-        setProgress(100);
-        clearInterval(intervalRef.current!);
+        const id = intervalRef.current;
+        if (id !== null) clearInterval(id);
         intervalRef.current = null;
-        window.setTimeout(() => {
+        setProgress(100);
+        resetRef.current = window.setTimeout(() => {
+          resetRef.current = null;
           setFilename(null);
           setProgress(0);
         }, 500);
