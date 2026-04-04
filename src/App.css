@@ -314,3 +314,72 @@ html, body {
   font-size: 12px;
   color: #8e8e93;
 }
+
+/* --- Anel do DogIcon --- */
+.dog-ring-wrap {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ring-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 36px;
+  height: 36px;
+  transform: rotate(-90deg);
+}
+
+.ring-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 2.5;
+}
+
+.ring-fill {
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.1s linear;
+}
+
+/* --- DropZone — estado de envio --- */
+.drop-zone.uploading {
+  border-color: #0a84ff;
+  background: rgba(10, 132, 255, 0.08);
+  color: #f2f2f7;
+}
+
+.upload-filename {
+  font-size: 13px;
+  font-weight: 600;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.progress-bar-track {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: #0a84ff;
+  border-radius: 4px;
+  transition: width 0.1s linear;
+}
+
+.upload-percent {
+  font-size: 11px;
+  color: #8e8e93;
+}
