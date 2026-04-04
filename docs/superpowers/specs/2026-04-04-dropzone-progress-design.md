@@ -1,15 +1,15 @@
-# DropZone Progress & DogIcon Ring — Design Spec
+# DropZone com Progresso & Anel no DogIcon — Spec de Design
 
-**Date:** 2026-04-04  
-**Status:** Approved
+**Data:** 2026-04-04  
+**Status:** Aprovado
 
-## Overview
+## Visão Geral
 
-Migrate `DropZone` from native drag events to `react-dropzone`. When a file is dropped, show the filename and a simulated progress bar inside the DropZone, display a circular progress ring around the `DogIcon` in the header, and animate the dog's ears continuously while the upload is in progress — all synchronized via a shared `useUpload` hook.
+Migrar o `DropZone` dos eventos nativos de drag para a biblioteca `react-dropzone`. Quando um arquivo é solto, exibir o nome do arquivo e uma barra de progresso simulada dentro do DropZone, mostrar um anel de progresso circular ao redor do `DogIcon` no cabeçalho e animar as orelhas do cachorro continuamente enquanto o upload estiver em andamento — tudo sincronizado via um hook `useUpload` compartilhado.
 
-## Architecture
+## Arquitetura
 
-State lives exclusively in a new `useUpload` hook. `App` consumes the hook and passes derived props down to `DropZone` and `DogIcon`. No context, no prop drilling beyond one level.
+O estado vive exclusivamente no novo hook `useUpload`. O `App` consome o hook e passa as props derivadas para `DropZone` e `DogIcon`. Sem context, sem prop drilling além de um nível.
 
 ```
 useUpload() → { filename, progress, onDrop }
@@ -24,62 +24,62 @@ useEars()   → { ears, triggerBark, startWiggle, stopWiggle }
           onDrop />
 ```
 
-`App` uses a `useEffect` watching `filename` to call `startWiggle()` when upload begins and `stopWiggle()` when it ends.
+O `App` usa um `useEffect` observando `filename` para chamar `startWiggle()` quando o upload começa e `stopWiggle()` quando termina.
 
-## Components
+## Componentes
 
-### `src/hooks/useUpload.ts` (new)
+### `src/hooks/useUpload.ts` (novo)
 
 **Interface:**
 ```ts
 { filename: string | null, progress: number, onDrop: (files: File[]) => void }
 ```
 
-**Behavior:**
-- `filename`: name of the file currently uploading; `null` when idle.
-- `progress`: integer 0–100.
-- `onDrop(files)`: takes the first file in the array, sets `filename`, then starts a `setInterval` that increments `progress` by ~5 every 100ms (reaching 100% in ~2s). At 100%, clears the interval, waits 500ms, then resets `filename → null` and `progress → 0`.
-- If `onDrop` is called while an upload is already running, the current one is cancelled and the new file starts fresh.
+**Comportamento:**
+- `filename`: nome do arquivo em upload; `null` quando ocioso.
+- `progress`: inteiro de 0 a 100.
+- `onDrop(files)`: pega o primeiro arquivo da lista, define `filename`, e inicia um `setInterval` que incrementa `progress` em ~5 a cada 100ms (chegando a 100% em ~2s). Ao atingir 100%, limpa o interval, aguarda 500ms e reseta `filename → null` e `progress → 0`.
+- Se `onDrop` for chamado com um upload já em andamento, o atual é cancelado e o novo arquivo começa do zero.
 
-### `src/components/DropZone.tsx` (replace)
+### `src/hooks/useEars.ts` (modificar)
+
+Adicionar duas novas funções exportadas junto ao `triggerBark` existente:
+
+- **`startWiggle()`** — inicia um `setInterval` (~250ms) que cicla os estados das orelhas: `up → normal → down → normal → up → …`. Limpa qualquer timeout one-shot do `triggerBark` antes de começar.
+- **`stopWiggle()`** — limpa o interval e reseta as orelhas para `"normal"`.
+
+O ref do interval é separado do `timeoutRef` existente para não conflitar com o `triggerBark`.
+
+### `src/components/DropZone.tsx` (substituir)
 
 **Props:**
 ```ts
 { filename: string | null, progress: number, onDrop: (files: File[]) => void }
 ```
 
-Uses `useDropzone({ onDrop })` from `react-dropzone`. The existing `clipboardService.uploadFile` call is removed for now (pure visual).
+Usa `useDropzone({ onDrop })` do `react-dropzone`. A chamada existente ao `clipboardService.uploadFile` é removida por ora (apenas visual).
 
-**Visual states:**
+**Estados visuais:**
 
-| State | Trigger | UI |
+| Estado | Gatilho | UI |
 |---|---|---|
-| Idle | `filename === null && !isDragActive` | UploadIcon + "Arraste arquivos aqui" |
-| Drag active | `isDragActive` (from useDropzone) | Blue border + "Solte aqui" |
-| Uploading | `filename !== null` | File icon + filename (truncated) + progress bar + "N%" |
+| Ocioso | `filename === null && !isDragActive` | UploadIcon + "Arraste arquivos aqui" |
+| Drag ativo | `isDragActive` (do useDropzone) | Borda azul + "Solte aqui" |
+| Enviando | `filename !== null` | Ícone de arquivo + nome (truncado) + barra de progresso + "N%" |
 
-The uploading state uses CSS class `drop-zone uploading` (blue border, blue tinted background). The progress bar is a full-width track with a blue fill div whose `width` is `${progress}%`.
+O estado de envio usa a classe CSS `drop-zone uploading` (borda azul, fundo levemente azul). A barra de progresso é uma track de largura total com um div de preenchimento azul cuja `width` é `${progress}%`.
 
-### `src/hooks/useEars.ts` (modify)
+### `src/components/Icons.tsx` — `DogIcon` (modificar)
 
-Add two new exported functions alongside the existing `triggerBark`:
+Adicionar prop opcional `progress?: number` (padrão `0`).
 
-- **`startWiggle()`** — starts a `setInterval` (~250ms) that cycles ear states: `up → normal → down → normal → up → …`. Clears any running one-shot `triggerBark` timeout before starting.
-- **`stopWiggle()`** — clears the interval and resets ears to `"normal"`.
+Sempre renderizar um `<div className="dog-ring-wrap">` (36×36px) para evitar layout shift no cabeçalho. Dentro:
+- O `<svg>` existente do cachorro (28×28, centralizado via flexbox).
+- Quando `progress > 0`, sobrepor um `<svg className="ring-svg">` (36×36, `rotate(-90deg)`) contendo:
+  - Círculo de fundo: `r=16`, stroke `rgba(255,255,255,0.08)`, `strokeWidth=2.5`
+  - Círculo de preenchimento: `r=16`, stroke `#0a84ff`, `strokeWidth=2.5`, `strokeLinecap="round"`, `strokeDasharray="100.5"` (2π×16), `strokeDashoffset = 100.5 × (1 - progress/100)`
 
-The interval ref is separate from the existing `timeoutRef` to avoid conflicts with `triggerBark`.
-
-### `src/components/Icons.tsx` — `DogIcon` (modify)
-
-Add optional prop `progress?: number` (default `0`).
-
-Always render a `<div className="dog-ring-wrap">` (36×36px) to avoid layout shift in the header. Inside:
-- The existing dog `<svg>` (28×28, centered by flexbox).
-- When `progress > 0`, overlay an `<svg className="ring-svg">` (36×36, `rotate(-90deg)`) containing:
-  - Background circle: `r=16`, stroke `rgba(255,255,255,0.08)`, `strokeWidth=2.5`
-  - Fill circle: `r=16`, stroke `#0a84ff`, `strokeWidth=2.5`, `strokeLinecap="round"`, `strokeDasharray="100.5"` (2π×16), `strokeDashoffset = 100.5 × (1 - progress/100)`
-
-### `src/App.tsx` (modify)
+### `src/App.tsx` (modificar)
 
 ```tsx
 const { filename, progress, onDrop } = useUpload();
@@ -96,16 +96,16 @@ useEffect(() => {
 <DropZone filename={filename} progress={progress} onDrop={onDrop} />
 ```
 
-### `src/App.css` (modify)
+### `src/App.css` (modificar)
 
-New rules to add:
+Novos estilos a adicionar:
 
 ```css
-/* Dog ring */
+/* Anel do DogIcon */
 .dog-ring-wrap { position: relative; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .ring-svg { position: absolute; top: 0; left: 0; width: 36px; height: 36px; transform: rotate(-90deg); }
 
-/* DropZone uploading state */
+/* Estado de envio do DropZone */
 .drop-zone.uploading { border-color: #0a84ff; background: rgba(10,132,255,0.08); color: #f2f2f7; }
 .upload-filename { font-size: 13px; font-weight: 600; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .progress-bar-track { width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; }
@@ -113,13 +113,13 @@ New rules to add:
 .upload-percent { font-size: 11px; color: #8e8e93; }
 ```
 
-## Dependencies
+## Dependências
 
-- Install `react-dropzone` (`npm install react-dropzone`).
+- Instalar `react-dropzone` (`npm install react-dropzone`).
 
-## What is NOT in scope
+## Fora do Escopo
 
-- Actual file upload (no `clipboardService.uploadFile` call).
-- Multiple simultaneous uploads.
-- Error states.
-- File type filtering.
+- Upload real de arquivo (sem chamada ao `clipboardService.uploadFile`).
+- Múltiplos uploads simultâneos.
+- Estados de erro.
+- Filtragem por tipo de arquivo.
