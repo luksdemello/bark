@@ -217,6 +217,22 @@ html, body {
   flex-shrink: 0;
 }
 
+.clipboard-item.pinned {
+  border-color: rgba(255, 214, 10, 0.15);
+  overflow: hidden;
+}
+
+.clipboard-item.pinned::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, #ffd60a, #ff9f0a);
+  border-radius: 10px 0 0 10px;
+}
+
 /* --- Actions (refatorado) --- */
 .item-actions {
   position: absolute;
