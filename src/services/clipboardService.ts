@@ -18,6 +18,10 @@ export const clipboardService = {
     return invoke("delete_item", { id });
   },
 
+  pinItem(id: number): Promise<void> {
+    return invoke("pin_item", { id });
+  },
+
   clearHistory(): Promise<void> {
     return invoke("clear_history");
   },
