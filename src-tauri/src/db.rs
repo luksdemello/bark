@@ -20,12 +20,21 @@ pub struct Database {
     conn: Mutex<Connection>,
 }
 
+fn add_column_if_missing(conn: &Connection, sql: &str) -> Result<(), rusqlite::Error> {
+    match conn.execute(sql, []) {
+        Ok(_) => Ok(()),
+        Err(rusqlite::Error::SqliteFailure(err, _))
+            if err.code == rusqlite::ErrorCode::Unknown => Ok(()),
+        Err(e) => Err(e),
+    }
+}
+
 impl Database {
     pub fn new(db_path: &Path) -> Result<Self, rusqlite::Error> {
         let conn = Connection::open(db_path)?;
+        conn.execute_batch("PRAGMA journal_mode=WAL;")?;
         conn.execute_batch(
-            "PRAGMA journal_mode=WAL;
-            CREATE TABLE IF NOT EXISTS clipboard_items (
+            "CREATE TABLE IF NOT EXISTS clipboard_items (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 content_type TEXT NOT NULL,
                 text_content TEXT,
@@ -40,11 +49,12 @@ impl Database {
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
             );
-            INSERT OR IGNORE INTO settings (key, value) VALUES ('max_items', '50');"
+            INSERT OR IGNORE INTO settings (key, value) VALUES ('max_items', '50');
+            CREATE INDEX IF NOT EXISTS idx_clipboard_hash ON clipboard_items(hash);"
         )?;
         // Migrations for existing installs that lack hash/pinned columns
-        let _ = conn.execute("ALTER TABLE clipboard_items ADD COLUMN hash TEXT", []);
-        let _ = conn.execute("ALTER TABLE clipboard_items ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0", []);
+        add_column_if_missing(&conn, "ALTER TABLE clipboard_items ADD COLUMN hash TEXT")?;
+        add_column_if_missing(&conn, "ALTER TABLE clipboard_items ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0")?;
         Ok(Self { conn: Mutex::new(conn) })
     }
 
