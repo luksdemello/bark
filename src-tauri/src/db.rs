@@ -94,6 +94,26 @@ impl Database {
         }
     }
 
+    pub fn search_items(&self, query: &str, limit: u32) -> Result<Vec<ClipboardItem>, rusqlite::Error> {
+        let conn = self.conn.lock().unwrap();
+        let pattern = format!("%{}%", query);
+        let mut stmt = conn.prepare(
+            "SELECT id, content_type, text_content, image_path, image_thumb, created_at, last_copied_at FROM clipboard_items WHERE text_content LIKE ?1 ORDER BY id DESC LIMIT ?2"
+        )?;
+        let rows = stmt.query_map(params![pattern, limit], |row| {
+            Ok(ClipboardItem {
+                id: row.get(0)?,
+                content_type: row.get(1)?,
+                text_content: row.get(2)?,
+                image_path: row.get(3)?,
+                image_thumb: row.get(4)?,
+                created_at: row.get(5)?,
+                last_copied_at: row.get(6)?,
+            })
+        })?;
+        rows.collect()
+    }
+
     pub fn get_items(&self, page: u32, limit: u32) -> Result<Vec<ClipboardItem>, rusqlite::Error> {
         let conn = self.conn.lock().unwrap();
         let offset = page * limit;

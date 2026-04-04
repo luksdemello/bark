@@ -1,14 +1,17 @@
-import { useRef } from "react";
+import { useState, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useClipboard } from "./hooks/useClipboard";
-import { useEars } from "./hooks/useEars"; 
+import { useEars } from "./hooks/useEars";
+import { useSearch } from "./hooks/useSearch";
 import { ClipboardListItem } from "./components/Item";
 import { DogIcon, UploadIcon } from "./components/Icons";
 import "./App.css";
 
 export default function App() {
-  const { items, loading, hasMore, loadMore, deleteItem } = useClipboard();
+  const { items, loading: clipLoading, hasMore, loadMore, deleteItem } = useClipboard();
   const { ears, triggerBark } = useEars();
+  const [searchQuery, setSearchQuery] = useState("");
+  const { results: searchResults, loading: searchLoading, isActive: isSearching } = useSearch(searchQuery);
   const listRef = useRef<HTMLDivElement>(null);
 
   const handleCopy = async (id: number) => {
@@ -17,10 +20,13 @@ export default function App() {
   };
 
   const onScroll = () => {
-    if (!listRef.current || loading || !hasMore) return;
+    if (isSearching || !listRef.current || clipLoading || !hasMore) return;
     const { scrollTop, scrollHeight, clientHeight } = listRef.current;
     if (scrollTop + clientHeight >= scrollHeight - 100) loadMore();
   };
+
+  const displayItems = isSearching ? searchResults : items;
+  const loading = isSearching ? searchLoading : clipLoading;
 
   return (
     <div className="widget">
@@ -32,13 +38,43 @@ export default function App() {
         </div>
       </header>
 
+      <div className="search-bar">
+        <input
+          className="search-input"
+          type="text"
+          placeholder="Pesquisar..."
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+        />
+        {isSearching && (
+          <button className="search-clear" onClick={() => setSearchQuery("")} title="Limpar">
+            ×
+          </button>
+        )}
+      </div>
+
       <div className="clipboard-list" ref={listRef} onScroll={onScroll}>
-        {items.map(item => (
-          <ClipboardListItem 
-            key={item.id} 
-            item={item} 
-            onCopy={handleCopy} 
-            onDelete={deleteItem} 
+        {displayItems.length === 0 && !loading && (
+          <div className="empty-state">
+            {isSearching ? (
+              <>
+                <span className="empty-text">Nenhum resultado</span>
+                <span className="empty-subtext">Tente outra busca</span>
+              </>
+            ) : (
+              <>
+                <span className="empty-text">Nenhum item no clipboard</span>
+                <span className="empty-subtext">Copie algo para começar</span>
+              </>
+            )}
+          </div>
+        )}
+        {displayItems.map(item => (
+          <ClipboardListItem
+            key={item.id}
+            item={item}
+            onCopy={handleCopy}
+            onDelete={deleteItem}
           />
         ))}
         {loading && <div className="loader">Carregando...</div>}

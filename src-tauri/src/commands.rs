@@ -42,6 +42,13 @@ pub fn get_clipboard_history(db: State<'_, Arc<Database>>, page: u32, limit: u32
 }
 
 #[tauri::command]
+pub fn search_clipboard_history(db: State<'_, Arc<Database>>, query: String, limit: u32) -> Result<Vec<ClipboardItemResponse>, String> {
+    db.search_items(&query, limit)
+        .map(|items| items.into_iter().map(ClipboardItemResponse::from).collect())
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub fn copy_item(app: tauri::AppHandle, db: State<'_, Arc<Database>>, clipboard: State<'_, Clipboard>, id: i64) -> Result<(), String> {
     let items = db.get_items(0, 1000).map_err(|e| e.to_string())?;
     let item = items.into_iter().find(|i| i.id == id).ok_or("Item not found")?;

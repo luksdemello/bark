@@ -21,6 +21,7 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard::init())
         .invoke_handler(tauri::generate_handler![
             commands::get_clipboard_history,
+            commands::search_clipboard_history,
             commands::copy_item,
             commands::delete_item,
             commands::clear_history,
