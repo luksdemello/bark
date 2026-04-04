@@ -1,7 +1,8 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useClipboard } from "./hooks/useClipboard";
 import { useEars } from "./hooks/useEars";
 import { useSearch } from "./hooks/useSearch";
+import { useUpload } from "./hooks/useUpload";
 import { ClipboardListItem } from "./components/Item";
 import { DogIcon } from "./components/Icons";
 import { DropZone } from "./components/DropZone";
@@ -10,10 +11,16 @@ import "./App.css";
 
 export default function App() {
   const { items, loading: clipLoading, hasMore, loadMore, deleteItem } = useClipboard();
-  const { ears, triggerBark } = useEars();
+  const { ears, triggerBark, startWiggle, stopWiggle } = useEars();
   const [searchQuery, setSearchQuery] = useState("");
   const { results: searchResults, loading: searchLoading, isActive: isSearching } = useSearch(searchQuery);
   const listRef = useRef<HTMLDivElement>(null);
+  const { filename, progress, onDrop } = useUpload();
+
+  useEffect(() => {
+    if (filename) startWiggle();
+    else stopWiggle();
+  }, [filename]);
 
   const handleCopy = async (id: number) => {
     await clipboardService.copyItem(id);
@@ -32,7 +39,7 @@ export default function App() {
   return (
     <div className="widget">
       <header className="widget-header">
-        <DogIcon ears={ears} />
+        <DogIcon ears={ears} progress={progress} />
         <div className="header-info">
           <span className="header-title">Bark</span>
           <span className="header-subtitle">Clipboard</span>
@@ -81,7 +88,7 @@ export default function App() {
         {loading && <div className="loader">Carregando...</div>}
       </div>
 
-      <DropZone />
+      <DropZone filename={filename} progress={progress} onDrop={onDrop} />
     </div>
   );
 }
