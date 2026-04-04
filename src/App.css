@@ -80,8 +80,18 @@ html, body {
 /* --- Search Bar --- */
 .search-bar {
   position: relative;
+  display: flex;
+  align-items: center;
   padding: 8px 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  color: #636366;
+  pointer-events: none;
   flex-shrink: 0;
 }
 
@@ -90,7 +100,7 @@ html, body {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-  padding: 7px 32px 7px 10px;
+  padding: 7px 32px 7px 32px;
   color: #f2f2f7;
   font-size: 13px;
   outline: none;
@@ -106,9 +116,19 @@ html, body {
   color: #636366;
 }
 
+.search-hint {
+  position: absolute;
+  right: 10px;
+  color: #48484a;
+  font-size: 11px;
+  font-weight: 500;
+  pointer-events: none;
+  letter-spacing: 0.3px;
+}
+
 .search-clear {
   position: absolute;
-  right: 20px;
+  right: 8px;
   top: 50%;
   transform: translateY(-50%);
   background: none;

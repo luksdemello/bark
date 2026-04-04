@@ -48,13 +48,27 @@ export default function App() {
       </header>
 
       <div className="search-bar">
+        <svg
+          className="search-icon"
+          width="14" height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
         <input
           className="search-input"
           type="text"
-          placeholder="Pesquisar..."
+          placeholder="Buscar no clipboard..."
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
         />
+        {!searchQuery && (
+          <span className="search-hint">⌘K</span>
+        )}
         {isSearching && (
           <button className="search-clear" onClick={() => setSearchQuery("")} title="Limpar">
             ×
