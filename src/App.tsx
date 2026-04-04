@@ -1,10 +1,11 @@
 import { useState, useRef } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { useClipboard } from "./hooks/useClipboard";
 import { useEars } from "./hooks/useEars";
 import { useSearch } from "./hooks/useSearch";
 import { ClipboardListItem } from "./components/Item";
-import { DogIcon, UploadIcon } from "./components/Icons";
+import { DogIcon } from "./components/Icons";
+import { DropZone } from "./components/DropZone";
+import { clipboardService } from "./services/clipboardService";
 import "./App.css";
 
 export default function App() {
@@ -15,7 +16,7 @@ export default function App() {
   const listRef = useRef<HTMLDivElement>(null);
 
   const handleCopy = async (id: number) => {
-    await invoke("copy_item", { id });
+    await clipboardService.copyItem(id);
     triggerBark();
   };
 
@@ -80,10 +81,7 @@ export default function App() {
         {loading && <div className="loader">Carregando...</div>}
       </div>
 
-      <footer className="drop-zone">
-        <UploadIcon />
-        <span>Arraste arquivos aqui</span>
-      </footer>
+      <DropZone />
     </div>
   );
 }
