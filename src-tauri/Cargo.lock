@@ -319,6 +319,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "bark"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "image",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-clipboard",
+ "tauri-plugin-opener",
+ "tauri-plugin-positioner",
+ "tokio",
+ "window-vibrancy 0.7.1",
+]
+
+[[package]]
 name = "base64"
 version = "0.21.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -613,25 +632,6 @@ checksum = "bde03770d3df201d4fb868f2c9c59e66a3e4e2bd06692a0fe701e7103c7e84d4"
 dependencies = [
  "error-code",
  "windows-win",
-]
-
-[[package]]
-name = "clipboard_widget"
-version = "0.1.0"
-dependencies = [
- "base64 0.22.1",
- "image",
- "rusqlite",
- "serde",
- "serde_json",
- "sha2",
- "tauri",
- "tauri-build",
- "tauri-plugin-clipboard",
- "tauri-plugin-opener",
- "tauri-plugin-positioner",
- "tokio",
- "window-vibrancy 0.7.1",
 ]
 
 [[package]]
