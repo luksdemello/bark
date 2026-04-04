@@ -10,12 +10,18 @@ import { clipboardService } from "./services/clipboardService";
 import "./App.css";
 
 export default function App() {
-  const { items, loading: clipLoading, hasMore, loadMore, deleteItem } = useClipboard();
+  const { items, loading: clipLoading, hasMore, loadMore, deleteItem, pinItem } = useClipboard();
   const { ears, triggerBark, startWiggle, stopWiggle } = useEars();
   const [searchQuery, setSearchQuery] = useState("");
   const { results: searchResults, loading: searchLoading, isActive: isSearching } = useSearch(searchQuery);
   const listRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
   const { filename, progress, isDragActive } = useUpload();
+  const [copiedId, setCopiedId] = useState<number | null>(null);
+
+  useEffect(() => {
+    searchRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     if (filename) startWiggle();
@@ -26,6 +32,8 @@ export default function App() {
   const handleCopy = async (id: number) => {
     await clipboardService.copyItem(id);
     triggerBark();
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 1500);
   };
 
   const onScroll = () => {
@@ -41,40 +49,42 @@ export default function App() {
     <div className="widget">
       <header className="widget-header">
         <DogIcon ears={ears} progress={progress} />
-        <div className="header-info">
-          <span className="header-title">Bark</span>
-          <span className="header-subtitle">Clipboard</span>
+        <div className="header-right">
+          <div className="header-info">
+            <span className="header-title">Bark</span>
+            <span className="header-subtitle">Clipboard</span>
+          </div>
+          <div className="search-bar">
+            <svg
+              className="search-icon"
+              width="14" height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              ref={searchRef}
+              className="search-input"
+              type="text"
+              placeholder="Buscar no clipboard..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+            {!searchQuery && (
+              <span className="search-hint">⌘K</span>
+            )}
+            {isSearching && (
+              <button className="search-clear" onClick={() => setSearchQuery("")} title="Limpar">
+                ×
+              </button>
+            )}
+          </div>
         </div>
       </header>
-
-      <div className="search-bar">
-        <svg
-          className="search-icon"
-          width="14" height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
-        <input
-          className="search-input"
-          type="text"
-          placeholder="Buscar no clipboard..."
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-        />
-        {!searchQuery && (
-          <span className="search-hint">⌘K</span>
-        )}
-        {isSearching && (
-          <button className="search-clear" onClick={() => setSearchQuery("")} title="Limpar">
-            ×
-          </button>
-        )}
-      </div>
 
       <div className="clipboard-list" ref={listRef} onScroll={onScroll}>
         {displayItems.length === 0 && !loading && (
@@ -98,6 +108,9 @@ export default function App() {
             item={item}
             onCopy={handleCopy}
             onDelete={deleteItem}
+            onPin={pinItem}
+            isCopied={copiedId === item.id}
+            isSelected={false}
           />
         ))}
         {loading && <div className="loader">Carregando...</div>}
