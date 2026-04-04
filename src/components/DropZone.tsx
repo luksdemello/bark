@@ -1,21 +1,16 @@
-import { useDropzone } from "react-dropzone";
 import { UploadIcon } from "./Icons";
 
 interface DropZoneProps {
   filename: string | null;
   progress: number;
-  onDrop: (files: File[]) => void;
+  isDragActive: boolean;
 }
 
-export function DropZone({ filename, progress, onDrop }: DropZoneProps) {
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, noClick: true });
-
+export function DropZone({ filename, progress, isDragActive }: DropZoneProps) {
   return (
     <footer
-      {...getRootProps()}
       className={`drop-zone${isDragActive ? " drag-over" : ""}${filename ? " uploading" : ""}`}
     >
-      <input {...getInputProps()} />
       {filename ? (
         <>
           <UploadIcon />

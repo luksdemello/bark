@@ -15,7 +15,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const { results: searchResults, loading: searchLoading, isActive: isSearching } = useSearch(searchQuery);
   const listRef = useRef<HTMLDivElement>(null);
-  const { filename, progress, onDrop } = useUpload();
+  const { filename, progress, isDragActive } = useUpload();
 
   useEffect(() => {
     if (filename) startWiggle();
@@ -89,7 +89,7 @@ export default function App() {
         {loading && <div className="loader">Carregando...</div>}
       </div>
 
-      <DropZone filename={filename} progress={progress} onDrop={onDrop} />
+      <DropZone filename={filename} progress={progress} isDragActive={isDragActive} />
     </div>
   );
 }
