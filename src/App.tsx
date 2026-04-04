@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useClipboard } from "./hooks/useClipboard";
 import { useEars } from "./hooks/useEars";
 import { useSearch } from "./hooks/useSearch";
@@ -16,8 +16,19 @@ export default function App() {
   const { results: searchResults, loading: searchLoading, isActive: isSearching } = useSearch(searchQuery);
   const listRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
   const { filename, progress, isDragActive } = useUpload();
   const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+
+  const displayItems = isSearching ? searchResults : items;
+  const loading = isSearching ? searchLoading : clipLoading;
+
+  // Reset selectedIndex whenever the item list changes
+  useEffect(() => {
+    setSelectedIndex(-1);
+  }, [displayItems.length]);
 
   useEffect(() => {
     searchRef.current?.focus();
@@ -29,21 +40,65 @@ export default function App() {
     return () => stopWiggle();
   }, [filename, startWiggle, stopWiggle]);
 
-  const handleCopy = async (id: number) => {
+  const handleCopy = useCallback(async (id: number) => {
     await clipboardService.copyItem(id);
     triggerBark();
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 1500);
-  };
+  }, [triggerBark]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      // ⌘+1..9 — always active
+      if (e.metaKey && e.key >= "1" && e.key <= "9") {
+        e.preventDefault();
+        const idx = parseInt(e.key) - 1;
+        if (displayItems[idx]) handleCopy(displayItems[idx].id);
+        return;
+      }
+
+      // Escape — return focus to search
+      if (e.key === "Escape") {
+        e.preventDefault();
+        searchRef.current?.focus();
+        setSelectedIndex(-1);
+        return;
+      }
+
+      // ↑ ↓ Enter — only when search is not focused
+      if (isSearchFocused) return;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSelectedIndex(prev => {
+          const next = Math.min(prev + 1, displayItems.length - 1);
+          itemRefs.current[next]?.scrollIntoView({ block: "nearest" });
+          return next;
+        });
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSelectedIndex(prev => {
+          const next = Math.max(prev - 1, 0);
+          itemRefs.current[next]?.scrollIntoView({ block: "nearest" });
+          return next;
+        });
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (selectedIndex >= 0 && displayItems[selectedIndex]) {
+          handleCopy(displayItems[selectedIndex].id);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isSearchFocused, selectedIndex, displayItems, handleCopy]);
 
   const onScroll = () => {
     if (isSearching || !listRef.current || clipLoading || !hasMore) return;
     const { scrollTop, scrollHeight, clientHeight } = listRef.current;
     if (scrollTop + clientHeight >= scrollHeight - 100) loadMore();
   };
-
-  const displayItems = isSearching ? searchResults : items;
-  const loading = isSearching ? searchLoading : clipLoading;
 
   return (
     <div className="widget">
@@ -73,6 +128,8 @@ export default function App() {
               placeholder="Buscar no clipboard..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setIsSearchFocused(false)}
             />
             {!searchQuery && (
               <span className="search-hint">⌘K</span>
@@ -102,7 +159,7 @@ export default function App() {
             )}
           </div>
         )}
-        {displayItems.map(item => (
+        {displayItems.map((item, idx) => (
           <ClipboardListItem
             key={item.id}
             item={item}
@@ -110,7 +167,8 @@ export default function App() {
             onDelete={deleteItem}
             onPin={pinItem}
             isCopied={copiedId === item.id}
-            isSelected={false}
+            isSelected={selectedIndex === idx}
+            ref={(el: HTMLDivElement | null) => { itemRefs.current[idx] = el; }}
           />
         ))}
         {loading && <div className="loader">Carregando...</div>}
