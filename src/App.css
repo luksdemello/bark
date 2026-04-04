@@ -278,6 +278,18 @@ html, body {
   transform: scale(1.05);
 }
 
+.action-btn.copy-btn:active {
+  background: #0a84ff;
+  border-color: #40a0ff;
+  transform: scale(0.92);
+}
+
+.action-btn.delete-btn:active {
+  background: #ff453a;
+  border-color: #ff6961;
+  transform: scale(0.92);
+}
+
 /* --- Drop Zone --- */
 .drop-zone {
   margin: 12px;
