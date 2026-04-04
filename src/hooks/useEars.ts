@@ -5,7 +5,6 @@ const WIGGLE_STATES: EarState[] = ["up", "normal", "down", "normal"];
 
 export function useEars() {
   const [ears, setEars] = useState<EarState>("normal");
-  const timeoutRef = useRef<number | null>(null);
   const wiggleRef = useRef<number | null>(null);
   const barkTimeouts = useRef<number[]>([]);
 
@@ -19,7 +18,6 @@ export function useEars() {
   const triggerBark = useCallback(() => {
     const wasWiggling = wiggleRef.current !== null;
 
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
     if (wiggleRef.current) {
       clearInterval(wiggleRef.current);
       wiggleRef.current = null;
@@ -58,10 +56,6 @@ export function useEars() {
   }, []);
 
   const startWiggle = useCallback(() => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
     if (wiggleRef.current) clearInterval(wiggleRef.current);
 
     let i = 0;
