@@ -93,7 +93,7 @@ impl Database {
         conn.query_row(
             "SELECT EXISTS(SELECT 1 FROM clipboard_items WHERE hash = ?1)",
             params![hash],
-            |row| row.get::<_, bool>(0),
+            |row| row.get::<_, i64>(0).map(|v| v != 0),
         )
         .unwrap_or(false)
     }
@@ -195,18 +195,36 @@ impl Database {
     }
 
     pub fn enforce_max_items(&self, max_items: u32) -> Result<Vec<String>, rusqlite::Error> {
-        let conn = self.conn.lock().unwrap();
-        let mut stmt = conn.prepare(
-            "SELECT image_path FROM clipboard_items WHERE pinned = 0 ORDER BY id DESC LIMIT -1 OFFSET ?1"
+        let mut conn = self.conn.lock().unwrap();
+        let tx = conn.transaction()?;
+        let mut stmt = tx.prepare(
+            "SELECT image_path FROM clipboard_items
+             WHERE pinned = 0
+             AND id NOT IN (
+                 SELECT id FROM clipboard_items
+                 WHERE pinned = 0
+                 ORDER BY id DESC
+                 LIMIT ?1
+             )
+             AND image_path IS NOT NULL"
         )?;
         let image_paths: Vec<String> = stmt
-            .query_map(params![max_items], |row| row.get::<_, Option<String>>(0))?
-            .filter_map(|r| r.ok().flatten())
+            .query_map(params![max_items], |row| row.get::<_, String>(0))?
+            .filter_map(|r| r.ok())
             .collect();
-        conn.execute(
-            "DELETE FROM clipboard_items WHERE id IN (SELECT id FROM clipboard_items WHERE pinned = 0 ORDER BY id DESC LIMIT -1 OFFSET ?1)",
+        drop(stmt);
+        tx.execute(
+            "DELETE FROM clipboard_items
+             WHERE pinned = 0
+             AND id NOT IN (
+                 SELECT id FROM clipboard_items
+                 WHERE pinned = 0
+                 ORDER BY id DESC
+                 LIMIT ?1
+             )",
             params![max_items],
         )?;
+        tx.commit()?;
         Ok(image_paths)
     }
 
@@ -247,23 +265,28 @@ impl Database {
     }
 
     pub fn delete_expired_items(&self, max_age_secs: i64) -> Result<Vec<String>, rusqlite::Error> {
-        let conn = self.conn.lock().unwrap();
+        let mut conn = self.conn.lock().unwrap();
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_secs() as i64;
         let cutoff = now - max_age_secs;
-        let mut stmt = conn.prepare(
-            "SELECT image_path FROM clipboard_items WHERE last_copied_at IS NULL AND created_at < ?1 AND pinned = 0"
+        let tx = conn.transaction()?;
+        let mut stmt = tx.prepare(
+            "SELECT image_path FROM clipboard_items
+             WHERE last_copied_at IS NULL AND created_at < ?1 AND pinned = 0
+             AND image_path IS NOT NULL"
         )?;
         let image_paths: Vec<String> = stmt
-            .query_map(params![cutoff], |row| row.get::<_, Option<String>>(0))?
-            .filter_map(|r| r.ok().flatten())
+            .query_map(params![cutoff], |row| row.get::<_, String>(0))?
+            .filter_map(|r| r.ok())
             .collect();
-        conn.execute(
+        drop(stmt);
+        tx.execute(
             "DELETE FROM clipboard_items WHERE last_copied_at IS NULL AND created_at < ?1 AND pinned = 0",
             params![cutoff],
         )?;
+        tx.commit()?;
         Ok(image_paths)
     }
 
@@ -330,5 +353,24 @@ mod tests {
         assert!(removed.is_empty()); // no image paths
         let items = db.get_items(0, 10).unwrap();
         assert_eq!(items.len(), 3);
+    }
+
+    #[test]
+    fn test_enforce_max_items_respects_pinned() {
+        let (db, _tmp) = make_db();
+        // Insert 3 items, pin the oldest one
+        let pinned = db.insert_item("text", Some("pinned"), None, None, Some("phash")).unwrap();
+        db.insert_item("text", Some("item1"), None, None, Some("h1")).unwrap();
+        db.insert_item("text", Some("item2"), None, None, Some("h2")).unwrap();
+        // Pin the first item directly via SQL
+        {
+            let conn = db.conn.lock().unwrap();
+            conn.execute("UPDATE clipboard_items SET pinned = 1 WHERE id = ?1", params![pinned.id]).unwrap();
+        }
+        // enforce with max_items=1: should keep 1 unpinned + 1 pinned = 2 total
+        db.enforce_max_items(1).unwrap();
+        let items = db.get_items(0, 10).unwrap();
+        assert_eq!(items.len(), 2); // 1 pinned + 1 unpinned
+        assert!(items.iter().any(|i| i.pinned));
     }
 }
