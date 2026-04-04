@@ -456,6 +456,26 @@ html, body {
   color: #f2f2f7;
 }
 
+.drop-zone.success {
+  border-color: #30d158;
+  background: rgba(48, 209, 88, 0.08);
+  color: #f2f2f7;
+}
+
+.drop-zone.error {
+  border-color: #ff453a;
+  background: rgba(255, 69, 58, 0.08);
+  color: #f2f2f7;
+}
+
+.success-text {
+  color: #30d158;
+}
+
+.error-text {
+  color: #ff453a;
+}
+
 .upload-filename {
   font-size: 13px;
   font-weight: 600;

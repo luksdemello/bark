@@ -17,7 +17,7 @@ export default function App() {
   const listRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const { filename, progress, isDragActive } = useUpload();
+  const { filename, progress, isDragActive, status, error } = useUpload();
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -176,7 +176,7 @@ export default function App() {
         {loading && <div className="loader">Carregando...</div>}
       </div>
 
-      <DropZone filename={filename} progress={progress} isDragActive={isDragActive} />
+      <DropZone filename={filename} progress={progress} isDragActive={isDragActive} status={status} error={error} />
     </div>
   );
 }
