@@ -2,6 +2,7 @@ mod commands;
 mod db;
 mod monitor;
 mod tray_animation;
+mod use_cases;
 
 use db::Database;
 use std::sync::Arc;
