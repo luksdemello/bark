@@ -5,6 +5,7 @@ mod tray_animation;
 mod use_cases;
 
 use db::Database;
+use std::path::PathBuf;
 use std::sync::Arc;
 use tauri::{
     menu::{Menu, MenuItem},
@@ -23,31 +24,31 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::get_clipboard_history,
             commands::search_clipboard_history,
+            commands::get_item_by_id,
             commands::copy_item,
             commands::delete_item,
             commands::clear_history,
             commands::get_settings,
             commands::update_settings,
+            commands::upload_file,
             commands::quit_app,
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
-            // Initialize database
             let app_data_dir = app.path().app_data_dir().expect("Failed to get app data dir");
             std::fs::create_dir_all(&app_data_dir).ok();
+
             let db_path = app_data_dir.join("clipboard.db");
             let db = Arc::new(Database::new(&db_path).expect("Failed to init database"));
             app.manage(db.clone());
 
-            // Images directory
-            let images_dir = app_data_dir.join("images");
+            let images_dir: PathBuf = app_data_dir.join("images");
+            app.manage(images_dir.clone()); // available to upload_file command
 
-            // Start clipboard monitor
             monitor::start(&app.handle(), db, images_dir);
 
-            // Window setup
             if let Some(window) = app.get_webview_window("tray-window") {
                 #[cfg(target_os = "macos")]
                 apply_vibrancy(
@@ -63,11 +64,10 @@ pub fn run() {
                 });
             }
 
-            // Tray context menu
-            let quit_item = MenuItem::with_id(app, "quit", "Encerrar Bark", true, None::<&str>)?;
+            let quit_item =
+                MenuItem::with_id(app, "quit", "Encerrar Bark", true, None::<&str>)?;
             let tray_menu = Menu::with_items(app, &[&quit_item])?;
 
-            // Tray icon
             TrayIconBuilder::with_id("bark-tray")
                 .icon(tauri::include_image!("icons/tray_normal.png"))
                 .icon_as_template(false)
@@ -89,10 +89,8 @@ pub fn run() {
                     } = event
                     {
                         let app = tray.app_handle();
-
                         if let Some(window) = app.get_webview_window("tray-window") {
-                            let is_visible: bool = window.is_visible().unwrap_or(false);
-
+                            let is_visible = window.is_visible().unwrap_or(false);
                             if is_visible {
                                 let _ = window.hide();
                             } else {
@@ -101,10 +99,8 @@ pub fn run() {
                                         let _ = window.move_window(Position::TrayBottomCenter);
                                     }),
                                 );
-
                                 #[cfg(target_os = "macos")]
                                 let _ = app.show();
-
                                 let _ = window.show();
                                 let _ = window.set_focus();
                                 let _ = app.emit("window-shown", ());
