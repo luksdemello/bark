@@ -5,6 +5,13 @@ import { clipboardService } from "../services/clipboardService";
 
 const PAGE_SIZE = 20;
 
+function sortItems(items: ClipboardItem[]): ClipboardItem[] {
+  return [...items].sort((a, b) => {
+    if (a.pinned === b.pinned) return 0;
+    return a.pinned ? -1 : 1;
+  });
+}
+
 export function useClipboard() {
   const [items, setItems] = useState<ClipboardItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -15,7 +22,7 @@ export function useClipboard() {
     setLoading(true);
     try {
       const result = await clipboardService.getHistory(pageNum, PAGE_SIZE);
-      setItems(prev => (append ? [...prev, ...result] : result));
+      setItems(prev => sortItems(append ? [...prev, ...result] : result));
       setHasMore(result.length === PAGE_SIZE);
     } finally {
       setLoading(false);
@@ -26,10 +33,9 @@ export function useClipboard() {
     loadItems(0, false);
 
     const unlistenNew = listen<ClipboardItem>("clipboard://new-item", event => {
-      setItems(prev => [event.payload, ...prev]);
+      setItems(prev => sortItems([event.payload, ...prev]));
     });
 
-    // Re-sync when the popover becomes visible (covers items added while closed)
     const unlistenShown = listen("window-shown", () => {
       pageRef.current = 0;
       loadItems(0, false);
@@ -46,6 +52,21 @@ export function useClipboard() {
     setItems(prev => prev.filter(i => i.id !== id));
   };
 
+  const pinItem = async (id: number) => {
+    // Optimistic update: toggle pinned locally before round-trip
+    setItems(prev => sortItems(
+      prev.map(i => i.id === id ? { ...i, pinned: !i.pinned } : i)
+    ));
+    try {
+      await clipboardService.pinItem(id);
+    } catch {
+      // Revert on error
+      setItems(prev => sortItems(
+        prev.map(i => i.id === id ? { ...i, pinned: !i.pinned } : i)
+      ));
+    }
+  };
+
   const loadMore = () => {
     const next = pageRef.current + 1;
     pageRef.current = next;
@@ -58,6 +79,7 @@ export function useClipboard() {
     hasMore,
     loadMore,
     deleteItem,
+    pinItem,
     refresh: () => loadItems(0, false),
   };
 }
