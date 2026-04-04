@@ -45,6 +45,7 @@ pub fn run() {
             app.manage(db.clone());
 
             let images_dir: PathBuf = app_data_dir.join("images");
+            std::fs::create_dir_all(&images_dir).ok();
             app.manage(images_dir.clone()); // available to upload_file command
 
             monitor::start(&app.handle(), db, images_dir);
