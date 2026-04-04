@@ -15,19 +15,38 @@ const EAR_PATHS: Record<EarState, { left: string; right: string }> = {
   },
 };
 
-export function DogIcon({ ears }: { ears: EarState }) {
+export function DogIcon({ ears, progress = 0 }: { ears: EarState; progress?: number }) {
   const { left, right } = EAR_PATHS[ears];
+  const circumference = 100.53; // 2π × 16
+  const dashOffset = circumference * (1 - progress / 100);
+
   return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-      <path d={left}  fill="#8B4513" />
-      <path d={right} fill="#8B4513" />
-      <ellipse cx="12" cy="11" rx="7" ry="6" fill="#A0522D" />
-      <ellipse cx="12" cy="14" rx="4" ry="3.5" fill="#DEB887" />
-      <ellipse cx="12" cy="14" rx="1.5" ry="1.2" fill="#333333" />
-      <circle cx="9.5" cy="10" r="1" fill="#000000" />
-      <circle cx="14.5" cy="10" r="1" fill="#000000" />
-      <path d="M8 15C7 15 6 16 6 18C6 20 7 21 8 21H16C17 21 18 20 18 18C18 16 17 15 16 15H8Z" fill="#A0522D" />
-    </svg>
+    <div className="dog-ring-wrap">
+      {progress > 0 && (
+        <svg className="ring-svg" viewBox="0 0 36 36">
+          <circle className="ring-bg" cx="18" cy="18" r="16" />
+          <circle
+            className="ring-fill"
+            cx="18"
+            cy="18"
+            r="16"
+            stroke="#0a84ff"
+            strokeDasharray={circumference}
+            strokeDashoffset={dashOffset}
+          />
+        </svg>
+      )}
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+        <path d={left}  fill="#8B4513" />
+        <path d={right} fill="#8B4513" />
+        <ellipse cx="12" cy="11" rx="7" ry="6" fill="#A0522D" />
+        <ellipse cx="12" cy="14" rx="4" ry="3.5" fill="#DEB887" />
+        <ellipse cx="12" cy="14" rx="1.5" ry="1.2" fill="#333333" />
+        <circle cx="9.5" cy="10" r="1" fill="#000000" />
+        <circle cx="14.5" cy="10" r="1" fill="#000000" />
+        <path d="M8 15C7 15 6 16 6 18C6 20 7 21 8 21H16C17 21 18 20 18 18C18 16 17 15 16 15H8Z" fill="#A0522D" />
+      </svg>
+    </div>
   );
 }
 
