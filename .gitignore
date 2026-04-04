@@ -25,3 +25,11 @@ dist-ssr
 
 # Git worktrees
 .worktrees
+
+# Environment variables (credentials — never commit these)
+.env
+.env.local
+.env.*.local
+*.env
+.env.*
+!.env.example
