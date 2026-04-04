@@ -23,7 +23,12 @@ export function DropZone({ filename, progress, isDragActive }: DropZoneProps) {
       ) : (
         <>
           <UploadIcon />
-          <span>{isDragActive ? "Solte aqui" : "Arraste arquivos aqui"}</span>
+          <span className="dropzone-main">
+            {isDragActive ? "Solte para compartilhar" : "Arraste arquivos para compartilhar"}
+          </span>
+          {!isDragActive && (
+            <span className="dropzone-sub">Um link será gerado automaticamente</span>
+          )}
         </>
       )}
     </footer>
