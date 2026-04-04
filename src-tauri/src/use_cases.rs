@@ -43,8 +43,11 @@ pub fn save_image(app: &AppHandle, db: &Arc<Database>, bytes: Vec<u8>, images_di
     let path_str = full_path.to_string_lossy().to_string();
     let thumb = if thumb_bytes.is_empty() { None } else { Some(thumb_bytes.as_slice()) };
 
-    if let Ok(item) = db.insert_item("image", None, Some(&path_str), thumb, Some(&hash)) {
-        enforce_and_emit(app, db, &item);
+    match db.insert_item("image", None, Some(&path_str), thumb, Some(&hash)) {
+        Ok(item) => enforce_and_emit(app, db, &item),
+        Err(_) => {
+            fs::remove_file(&full_path).ok();
+        }
     }
 }
 
@@ -61,15 +64,17 @@ pub fn copy_item(
 
     match item.content_type.as_str() {
         "text" => {
-            if let Some(text) = &item.text_content {
-                clipboard.write_text(text.clone()).map_err(|e| e.to_string())?;
-            }
+            let text = item
+                .text_content
+                .ok_or_else(|| "Text item has no content".to_string())?;
+            clipboard.write_text(text).map_err(|e| e.to_string())?;
         }
         "image" => {
-            if let Some(path) = &item.image_path {
-                let bytes = fs::read(path).map_err(|e| e.to_string())?;
-                clipboard.write_image_binary(bytes).map_err(|e| e.to_string())?;
-            }
+            let path = item
+                .image_path
+                .ok_or_else(|| "Image item has no path".to_string())?;
+            let bytes = fs::read(&path).map_err(|e| e.to_string())?;
+            clipboard.write_image_binary(bytes).map_err(|e| e.to_string())?;
         }
         _ => return Err("Unknown content type".into()),
     }
