@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { listen } from "@tauri-apps/api/event";
+import { listen, emit } from "@tauri-apps/api/event";
 
 interface DragDropPayload {
   paths: string[];
@@ -50,13 +50,16 @@ export function useUpload() {
           if (id !== null) clearInterval(id);
           intervalRef.current = null;
           setProgress(100);
+          emit("upload-progress", { progress: 100 });
           resetRef.current = window.setTimeout(() => {
             resetRef.current = null;
             setFilename(null);
             setProgress(0);
+            emit("upload-progress", { progress: 0 });
           }, 500);
         } else {
           setProgress(current);
+          emit("upload-progress", { progress: current });
         }
       }, 100);
     }).then(u => unlisteners.push(u));
