@@ -5,7 +5,7 @@
 
 ## Overview
 
-Migrate `DropZone` from native drag events to `react-dropzone`. When a file is dropped, show the filename and a simulated progress bar inside the DropZone, and display a circular progress ring around the `DogIcon` in the header — both synchronized via a shared `useUpload` hook.
+Migrate `DropZone` from native drag events to `react-dropzone`. When a file is dropped, show the filename and a simulated progress bar inside the DropZone, display a circular progress ring around the `DogIcon` in the header, and animate the dog's ears continuously while the upload is in progress — all synchronized via a shared `useUpload` hook.
 
 ## Architecture
 
@@ -13,15 +13,18 @@ State lives exclusively in a new `useUpload` hook. `App` consumes the hook and p
 
 ```
 useUpload() → { filename, progress, onDrop }
+useEars()   → { ears, triggerBark, startWiggle, stopWiggle }
                         │
              ┌──────────┴───────────┐
           App.tsx               App.tsx
              │                      │
         <DropZone              <DogIcon
-          filename               progress={progress} />
-          progress
+          filename               ears={ears}
+          progress               progress={progress} />
           onDrop />
 ```
+
+`App` uses a `useEffect` watching `filename` to call `startWiggle()` when upload begins and `stopWiggle()` when it ends.
 
 ## Components
 
@@ -57,6 +60,15 @@ Uses `useDropzone({ onDrop })` from `react-dropzone`. The existing `clipboardSer
 
 The uploading state uses CSS class `drop-zone uploading` (blue border, blue tinted background). The progress bar is a full-width track with a blue fill div whose `width` is `${progress}%`.
 
+### `src/hooks/useEars.ts` (modify)
+
+Add two new exported functions alongside the existing `triggerBark`:
+
+- **`startWiggle()`** — starts a `setInterval` (~250ms) that cycles ear states: `up → normal → down → normal → up → …`. Clears any running one-shot `triggerBark` timeout before starting.
+- **`stopWiggle()`** — clears the interval and resets ears to `"normal"`.
+
+The interval ref is separate from the existing `timeoutRef` to avoid conflicts with `triggerBark`.
+
 ### `src/components/Icons.tsx` — `DogIcon` (modify)
 
 Add optional prop `progress?: number` (default `0`).
@@ -71,6 +83,13 @@ Always render a `<div className="dog-ring-wrap">` (36×36px) to avoid layout shi
 
 ```tsx
 const { filename, progress, onDrop } = useUpload();
+const { ears, triggerBark, startWiggle, stopWiggle } = useEars();
+
+useEffect(() => {
+  if (filename) startWiggle();
+  else stopWiggle();
+}, [filename]);
+
 // ...
 <DogIcon ears={ears} progress={progress} />
 // ...
