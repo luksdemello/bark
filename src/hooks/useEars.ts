@@ -10,6 +10,10 @@ export function useEars() {
 
   const triggerBark = useCallback(() => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (wiggleRef.current) {
+      clearInterval(wiggleRef.current);
+      wiggleRef.current = null;
+    }
 
     const frames: { state: EarState; delay: number }[] = [
       { state: "up",     delay: 0   },
