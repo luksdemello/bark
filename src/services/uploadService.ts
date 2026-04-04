@@ -2,7 +2,7 @@ import { readFile } from "@tauri-apps/plugin-fs";
 import { supabase } from "../lib/supabase";
 
 const BUCKET = "bark-files";
-const SIGNED_URL_EXPIRES_IN = 3600; // 1 hour in seconds
+const SIGNED_URL_EXPIRES_IN = 3600;
 
 function getMimeType(filename: string): string {
   const ext = filename.split(".").pop()?.toLowerCase() ?? "";
@@ -31,15 +31,28 @@ export async function uploadAndShare(filePath: string): Promise<string> {
 
   const bytes = await readFile(filePath);
 
- const { error: uploadError } = await supabase.storage
-  .from(BUCKET)
-  .upload(uniqueName, bytes, { 
-    contentType: mimeType,
-    upsert: false
-  });
+  const { error: uploadError } = await supabase.storage
+    .from(BUCKET)
+    .upload(uniqueName, bytes, {
+      contentType: mimeType,
+      upsert: false
+    });
 
   if (uploadError) {
     throw new Error(`Upload failed: ${uploadError.message}`);
+  }
+
+  const expiresAt = new Date(Date.now() + SIGNED_URL_EXPIRES_IN * 1000);
+
+  const { error: dbError } = await supabase
+    .from("files")
+    .insert({
+      path: uniqueName,
+      expires_at: expiresAt.toISOString(),
+    });
+
+  if (dbError) {
+    throw new Error(`Failed to save file metadata: ${dbError.message}`);
   }
 
   const { data, error: signedUrlError } = await supabase.storage
