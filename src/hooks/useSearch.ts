@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { ClipboardItem } from "../types";
+import { clipboardService } from "../services/clipboardService";
 
 const SEARCH_LIMIT = 50;
 const DEBOUNCE_MS = 200;
@@ -20,10 +20,7 @@ export function useSearch(query: string) {
     setLoading(true);
     const timer = setTimeout(async () => {
       try {
-        const result = await invoke<ClipboardItem[]>("search_clipboard_history", {
-          query: q,
-          limit: SEARCH_LIMIT,
-        });
+        const result = await clipboardService.searchHistory(q, SEARCH_LIMIT);
         setResults(result);
       } finally {
         setLoading(false);
