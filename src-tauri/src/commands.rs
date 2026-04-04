@@ -8,7 +8,7 @@ use std::sync::Arc;
 use tauri::State;
 use tauri_plugin_clipboard::Clipboard;
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 pub struct ClipboardItemResponse {
     pub id: i64,
     pub content_type: String,

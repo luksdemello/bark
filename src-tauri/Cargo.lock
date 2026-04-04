@@ -333,6 +333,7 @@ dependencies = [
  "tauri-plugin-clipboard",
  "tauri-plugin-opener",
  "tauri-plugin-positioner",
+ "tempfile",
  "tokio",
  "window-vibrancy 0.7.1",
 ]

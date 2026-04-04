@@ -60,8 +60,11 @@ pub fn run() {
                 )
                 .expect("Unsupported platform! 'apply_vibrancy' is only supported on macOS");
 
-                window.on_window_event(|event| {
-                    if let WindowEvent::Focused(false) = event {}
+                let window_app = app.handle().clone();
+                window.on_window_event(move |event| {
+                    if let WindowEvent::Focused(true) = event {
+                        let _ = window_app.emit("window-shown", ());
+                    }
                 });
             }
 
@@ -104,7 +107,6 @@ pub fn run() {
                                 let _ = app.show();
                                 let _ = window.show();
                                 let _ = window.set_focus();
-                                let _ = app.emit("window-shown", ());
                             }
                         }
                     }

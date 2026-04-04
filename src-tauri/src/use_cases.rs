@@ -1,3 +1,4 @@
+use crate::commands::ClipboardItemResponse;
 use crate::db::{ClipboardItem, Database};
 use image::ImageReader;
 use sha2::{Digest, Sha256};
@@ -96,7 +97,7 @@ fn enforce_and_emit(app: &AppHandle, db: &Arc<Database>, item: &ClipboardItem) {
     for path in removed_paths {
         fs::remove_file(&path).ok();
     }
-    app.emit("clipboard://new-item", item).ok();
+    app.emit("clipboard://new-item", ClipboardItemResponse::from(item.clone())).ok();
 }
 
 fn generate_thumbnail(image_bytes: &[u8]) -> Option<Vec<u8>> {

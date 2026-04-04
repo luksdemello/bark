@@ -49,11 +49,13 @@ impl Database {
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
             );
-            INSERT OR IGNORE INTO settings (key, value) VALUES ('max_items', '50');
-            CREATE INDEX IF NOT EXISTS idx_clipboard_hash ON clipboard_items(hash);"
+            INSERT OR IGNORE INTO settings (key, value) VALUES ('max_items', '50');"
         )?;
         add_column_if_missing(&conn, "ALTER TABLE clipboard_items ADD COLUMN hash TEXT")?;
         add_column_if_missing(&conn, "ALTER TABLE clipboard_items ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0")?;
+        conn.execute_batch(
+            "CREATE INDEX IF NOT EXISTS idx_clipboard_hash ON clipboard_items(hash);"
+        )?;
         Ok(Self { conn: Mutex::new(conn) })
     }
 
