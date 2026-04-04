@@ -1,37 +1,36 @@
-import { useState, DragEvent } from "react";
+import { useDropzone } from "react-dropzone";
 import { UploadIcon } from "./Icons";
-import { clipboardService } from "../services/clipboardService";
 
-export function DropZone() {
-  const [dragging, setDragging] = useState(false);
+interface DropZoneProps {
+  filename: string | null;
+  progress: number;
+  onDrop: (files: File[]) => void;
+}
 
-  const handleDragOver = (e: DragEvent<HTMLElement>) => {
-    e.preventDefault();
-    setDragging(true);
-  };
-
-  const handleDragLeave = () => setDragging(false);
-
-  const handleDrop = async (e: DragEvent<HTMLElement>) => {
-    e.preventDefault();
-    setDragging(false);
-    const files = Array.from(e.dataTransfer.files);
-    for (const file of files) {
-      const buffer = await file.arrayBuffer();
-      const bytes = Array.from(new Uint8Array(buffer));
-      await clipboardService.uploadFile(file.name, bytes).catch(() => {});
-    }
-  };
+export function DropZone({ filename, progress, onDrop }: DropZoneProps) {
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
   return (
     <footer
-      className={`drop-zone${dragging ? " drag-over" : ""}`}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
+      {...getRootProps()}
+      className={`drop-zone${isDragActive ? " drag-over" : ""}${filename ? " uploading" : ""}`}
     >
-      <UploadIcon />
-      <span>{dragging ? "Solte aqui" : "Arraste arquivos aqui"}</span>
+      <input {...getInputProps()} />
+      {filename ? (
+        <>
+          <UploadIcon />
+          <div className="upload-filename">{filename}</div>
+          <div className="progress-bar-track">
+            <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
+          </div>
+          <div className="upload-percent">{progress}%</div>
+        </>
+      ) : (
+        <>
+          <UploadIcon />
+          <span>{isDragActive ? "Solte aqui" : "Arraste arquivos aqui"}</span>
+        </>
+      )}
     </footer>
   );
 }
