@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { listen, emit } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
 import { uploadAndShare } from "../services/uploadService";
 
 interface DragDropPayload {
@@ -30,17 +31,25 @@ export function useUpload() {
   }
 
   useEffect(() => {
+    let active = true;
     const unlisteners: Array<() => void> = [];
 
-    listen("tauri://drag-enter", () => {
+    function register(promise: Promise<() => void>) {
+      promise.then(u => {
+        if (active) unlisteners.push(u);
+        else u();
+      });
+    }
+
+    register(listen("tauri://drag-enter", () => {
       setIsDragActive(true);
-    }).then(u => unlisteners.push(u));
+    }));
 
-    listen("tauri://drag-leave", () => {
+    register(listen("tauri://drag-leave", () => {
       setIsDragActive(false);
-    }).then(u => unlisteners.push(u));
+    }));
 
-    listen<DragDropPayload>("tauri://drag-drop", async (event) => {
+    register(listen<DragDropPayload>("tauri://drag-drop", async (event) => {
       setIsDragActive(false);
       const paths = event.payload.paths;
       if (paths.length === 0) return;
@@ -63,7 +72,7 @@ export function useUpload() {
         setProgress(100);
         setStatus("success");
         emit("upload-progress", { progress: 100 });
-        await navigator.clipboard.writeText(signedUrl);
+        await invoke("write_text_to_clipboard", { text: signedUrl });
         scheduleReset(3000);
       } catch (err) {
         setStatus("error");
@@ -71,9 +80,10 @@ export function useUpload() {
         emit("upload-progress", { progress: 0 });
         scheduleReset(4000);
       }
-    }).then(u => unlisteners.push(u));
+    }));
 
     return () => {
+      active = false;
       unlisteners.forEach(u => u());
       if (resetRef.current !== null) clearTimeout(resetRef.current);
     };

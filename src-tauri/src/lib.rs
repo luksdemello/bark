@@ -34,6 +34,7 @@ pub fn run() {
             commands::update_settings,
             commands::upload_file,
             commands::quit_app,
+            commands::write_text_to_clipboard,
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]

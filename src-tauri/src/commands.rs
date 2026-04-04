@@ -89,6 +89,11 @@ pub fn pin_item(db: State<'_, Arc<Database>>, id: i64) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn write_text_to_clipboard(clipboard: State<'_, Clipboard>, text: String) -> Result<(), String> {
+    clipboard.write_text(text).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub fn delete_item(db: State<'_, Arc<Database>>, id: i64) -> Result<(), String> {
     if let Some(image_path) = db.delete_item(id).map_err(|e| e.to_string())? {
         fs::remove_file(&image_path).ok();

@@ -30,11 +30,13 @@ export async function uploadAndShare(filePath: string): Promise<string> {
   const mimeType = getMimeType(fileName);
 
   const bytes = await readFile(filePath);
-  const file = new File([bytes], uniqueName, { type: mimeType });
 
-  const { error: uploadError } = await supabase.storage
-    .from(BUCKET)
-    .upload(uniqueName, file);
+ const { error: uploadError } = await supabase.storage
+  .from(BUCKET)
+  .upload(uniqueName, bytes, { 
+    contentType: mimeType,
+    upsert: false
+  });
 
   if (uploadError) {
     throw new Error(`Upload failed: ${uploadError.message}`);
