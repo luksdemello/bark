@@ -10,6 +10,8 @@ pub struct ClipboardItem {
     pub text_content: Option<String>,
     pub image_path: Option<String>,
     pub image_thumb: Option<Vec<u8>>,
+    pub hash: Option<String>,
+    pub pinned: bool,
     pub created_at: i64,
     pub last_copied_at: Option<i64>,
 }
@@ -22,12 +24,15 @@ impl Database {
     pub fn new(db_path: &Path) -> Result<Self, rusqlite::Error> {
         let conn = Connection::open(db_path)?;
         conn.execute_batch(
-            "CREATE TABLE IF NOT EXISTS clipboard_items (
+            "PRAGMA journal_mode=WAL;
+            CREATE TABLE IF NOT EXISTS clipboard_items (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 content_type TEXT NOT NULL,
                 text_content TEXT,
                 image_path TEXT,
                 image_thumb BLOB,
+                hash TEXT,
+                pinned INTEGER NOT NULL DEFAULT 0,
                 created_at INTEGER NOT NULL,
                 last_copied_at INTEGER
             );
@@ -35,9 +40,11 @@ impl Database {
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
             );
-            INSERT OR IGNORE INTO settings (key, value) VALUES ('max_items', '50');
-            "
+            INSERT OR IGNORE INTO settings (key, value) VALUES ('max_items', '50');"
         )?;
+        // Migrations for existing installs that lack hash/pinned columns
+        let _ = conn.execute("ALTER TABLE clipboard_items ADD COLUMN hash TEXT", []);
+        let _ = conn.execute("ALTER TABLE clipboard_items ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0", []);
         Ok(Self { conn: Mutex::new(conn) })
     }
 
@@ -58,6 +65,8 @@ impl Database {
             text_content: text_content.map(|s| s.to_string()),
             image_path: image_path.map(|s| s.to_string()),
             image_thumb: image_thumb.map(|b| b.to_vec()),
+            hash: None,
+            pinned: false,
             created_at: now,
             last_copied_at: None,
         })
@@ -84,6 +93,8 @@ impl Database {
                 text_content: row.get(2)?,
                 image_path: row.get(3)?,
                 image_thumb: row.get(4)?,
+                hash: None,
+                pinned: false,
                 created_at: row.get(5)?,
                 last_copied_at: row.get(6)?,
             })
@@ -107,6 +118,8 @@ impl Database {
                 text_content: row.get(2)?,
                 image_path: row.get(3)?,
                 image_thumb: row.get(4)?,
+                hash: None,
+                pinned: false,
                 created_at: row.get(5)?,
                 last_copied_at: row.get(6)?,
             })
@@ -127,6 +140,8 @@ impl Database {
                 text_content: row.get(2)?,
                 image_path: row.get(3)?,
                 image_thumb: row.get(4)?,
+                hash: None,
+                pinned: false,
                 created_at: row.get(5)?,
                 last_copied_at: row.get(6)?,
             })
