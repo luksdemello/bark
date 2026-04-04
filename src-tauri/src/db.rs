@@ -52,21 +52,27 @@ impl Database {
             INSERT OR IGNORE INTO settings (key, value) VALUES ('max_items', '50');
             CREATE INDEX IF NOT EXISTS idx_clipboard_hash ON clipboard_items(hash);"
         )?;
-        // Migrations for existing installs that lack hash/pinned columns
         add_column_if_missing(&conn, "ALTER TABLE clipboard_items ADD COLUMN hash TEXT")?;
         add_column_if_missing(&conn, "ALTER TABLE clipboard_items ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0")?;
         Ok(Self { conn: Mutex::new(conn) })
     }
 
-    pub fn insert_item(&self, content_type: &str, text_content: Option<&str>, image_path: Option<&str>, image_thumb: Option<&[u8]>) -> Result<ClipboardItem, rusqlite::Error> {
+    pub fn insert_item(
+        &self,
+        content_type: &str,
+        text_content: Option<&str>,
+        image_path: Option<&str>,
+        image_thumb: Option<&[u8]>,
+        hash: Option<&str>,
+    ) -> Result<ClipboardItem, rusqlite::Error> {
         let conn = self.conn.lock().unwrap();
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_secs() as i64;
         conn.execute(
-            "INSERT INTO clipboard_items (content_type, text_content, image_path, image_thumb, created_at, last_copied_at) VALUES (?1, ?2, ?3, ?4, ?5, NULL)",
-            params![content_type, text_content, image_path, image_thumb, now],
+            "INSERT INTO clipboard_items (content_type, text_content, image_path, image_thumb, hash, created_at, last_copied_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, NULL)",
+            params![content_type, text_content, image_path, image_thumb, hash, now],
         )?;
         let id = conn.last_insert_rowid();
         Ok(ClipboardItem {
@@ -75,73 +81,54 @@ impl Database {
             text_content: text_content.map(|s| s.to_string()),
             image_path: image_path.map(|s| s.to_string()),
             image_thumb: image_thumb.map(|b| b.to_vec()),
-            hash: None,
+            hash: hash.map(|s| s.to_string()),
             pinned: false,
             created_at: now,
             last_copied_at: None,
         })
     }
 
-    pub fn text_exists(&self, text: &str) -> bool {
+    pub fn hash_exists(&self, hash: &str) -> bool {
         let conn = self.conn.lock().unwrap();
         conn.query_row(
-            "SELECT EXISTS(SELECT 1 FROM clipboard_items WHERE content_type = 'text' AND text_content = ?1)",
-            params![text],
+            "SELECT EXISTS(SELECT 1 FROM clipboard_items WHERE hash = ?1)",
+            params![hash],
             |row| row.get::<_, bool>(0),
-        ).unwrap_or(false)
+        )
+        .unwrap_or(false)
     }
 
-    pub fn get_last_item(&self) -> Result<Option<ClipboardItem>, rusqlite::Error> {
+    pub fn get_item_by_id(&self, id: i64) -> Result<Option<ClipboardItem>, rusqlite::Error> {
         let conn = self.conn.lock().unwrap();
-        let mut stmt = conn.prepare(
-            "SELECT id, content_type, text_content, image_path, image_thumb, created_at, last_copied_at FROM clipboard_items ORDER BY id DESC LIMIT 1"
-        )?;
-        let mut rows = stmt.query_map([], |row| {
-            Ok(ClipboardItem {
-                id: row.get(0)?,
-                content_type: row.get(1)?,
-                text_content: row.get(2)?,
-                image_path: row.get(3)?,
-                image_thumb: row.get(4)?,
-                hash: None,
-                pinned: false,
-                created_at: row.get(5)?,
-                last_copied_at: row.get(6)?,
-            })
-        })?;
-        match rows.next() {
-            Some(row) => Ok(Some(row?)),
-            None => Ok(None),
-        }
-    }
-
-    pub fn search_items(&self, query: &str, limit: u32) -> Result<Vec<ClipboardItem>, rusqlite::Error> {
-        let conn = self.conn.lock().unwrap();
-        let pattern = format!("%{}%", query);
-        let mut stmt = conn.prepare(
-            "SELECT id, content_type, text_content, image_path, image_thumb, created_at, last_copied_at FROM clipboard_items WHERE text_content LIKE ?1 ORDER BY id DESC LIMIT ?2"
-        )?;
-        let rows = stmt.query_map(params![pattern, limit], |row| {
-            Ok(ClipboardItem {
-                id: row.get(0)?,
-                content_type: row.get(1)?,
-                text_content: row.get(2)?,
-                image_path: row.get(3)?,
-                image_thumb: row.get(4)?,
-                hash: None,
-                pinned: false,
-                created_at: row.get(5)?,
-                last_copied_at: row.get(6)?,
-            })
-        })?;
-        rows.collect()
+        conn.query_row(
+            "SELECT id, content_type, text_content, image_path, image_thumb, hash, pinned, created_at, last_copied_at FROM clipboard_items WHERE id = ?1",
+            params![id],
+            |row| {
+                Ok(ClipboardItem {
+                    id: row.get(0)?,
+                    content_type: row.get(1)?,
+                    text_content: row.get(2)?,
+                    image_path: row.get(3)?,
+                    image_thumb: row.get(4)?,
+                    hash: row.get(5)?,
+                    pinned: row.get::<_, i64>(6)? != 0,
+                    created_at: row.get(7)?,
+                    last_copied_at: row.get(8)?,
+                })
+            },
+        )
+        .map(Some)
+        .or_else(|e| match e {
+            rusqlite::Error::QueryReturnedNoRows => Ok(None),
+            other => Err(other),
+        })
     }
 
     pub fn get_items(&self, page: u32, limit: u32) -> Result<Vec<ClipboardItem>, rusqlite::Error> {
         let conn = self.conn.lock().unwrap();
         let offset = page * limit;
         let mut stmt = conn.prepare(
-            "SELECT id, content_type, text_content, image_path, image_thumb, created_at, last_copied_at FROM clipboard_items ORDER BY id DESC LIMIT ?1 OFFSET ?2"
+            "SELECT id, content_type, text_content, image_path, image_thumb, hash, pinned, created_at, last_copied_at FROM clipboard_items ORDER BY id DESC LIMIT ?1 OFFSET ?2"
         )?;
         let rows = stmt.query_map(params![limit, offset], |row| {
             Ok(ClipboardItem {
@@ -150,10 +137,32 @@ impl Database {
                 text_content: row.get(2)?,
                 image_path: row.get(3)?,
                 image_thumb: row.get(4)?,
-                hash: None,
-                pinned: false,
-                created_at: row.get(5)?,
-                last_copied_at: row.get(6)?,
+                hash: row.get(5)?,
+                pinned: row.get::<_, i64>(6)? != 0,
+                created_at: row.get(7)?,
+                last_copied_at: row.get(8)?,
+            })
+        })?;
+        rows.collect()
+    }
+
+    pub fn search_items(&self, query: &str, limit: u32) -> Result<Vec<ClipboardItem>, rusqlite::Error> {
+        let conn = self.conn.lock().unwrap();
+        let pattern = format!("%{}%", query);
+        let mut stmt = conn.prepare(
+            "SELECT id, content_type, text_content, image_path, image_thumb, hash, pinned, created_at, last_copied_at FROM clipboard_items WHERE text_content LIKE ?1 ORDER BY id DESC LIMIT ?2"
+        )?;
+        let rows = stmt.query_map(params![pattern, limit], |row| {
+            Ok(ClipboardItem {
+                id: row.get(0)?,
+                content_type: row.get(1)?,
+                text_content: row.get(2)?,
+                image_path: row.get(3)?,
+                image_thumb: row.get(4)?,
+                hash: row.get(5)?,
+                pinned: row.get::<_, i64>(6)? != 0,
+                created_at: row.get(7)?,
+                last_copied_at: row.get(8)?,
             })
         })?;
         rows.collect()
@@ -161,19 +170,26 @@ impl Database {
 
     pub fn delete_item(&self, id: i64) -> Result<Option<String>, rusqlite::Error> {
         let conn = self.conn.lock().unwrap();
-        let image_path: Option<String> = conn.query_row(
-            "SELECT image_path FROM clipboard_items WHERE id = ?1",
-            params![id],
-            |row| row.get(0),
-        ).ok();
+        let image_path: Option<String> = conn
+            .query_row(
+                "SELECT image_path FROM clipboard_items WHERE id = ?1",
+                params![id],
+                |row| row.get(0),
+            )
+            .ok();
         conn.execute("DELETE FROM clipboard_items WHERE id = ?1", params![id])?;
         Ok(image_path)
     }
 
     pub fn clear_all(&self) -> Result<Vec<String>, rusqlite::Error> {
         let conn = self.conn.lock().unwrap();
-        let mut stmt = conn.prepare("SELECT image_path FROM clipboard_items WHERE image_path IS NOT NULL")?;
-        let paths: Vec<String> = stmt.query_map([], |row| row.get(0))?.filter_map(|r| r.ok()).collect();
+        let mut stmt = conn.prepare(
+            "SELECT image_path FROM clipboard_items WHERE image_path IS NOT NULL",
+        )?;
+        let paths: Vec<String> = stmt
+            .query_map([], |row| row.get(0))?
+            .filter_map(|r| r.ok())
+            .collect();
         conn.execute("DELETE FROM clipboard_items", [])?;
         Ok(paths)
     }
@@ -181,18 +197,16 @@ impl Database {
     pub fn enforce_max_items(&self, max_items: u32) -> Result<Vec<String>, rusqlite::Error> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
-            "SELECT id, image_path FROM clipboard_items ORDER BY id DESC LIMIT -1 OFFSET ?1"
+            "SELECT image_path FROM clipboard_items WHERE pinned = 0 ORDER BY id DESC LIMIT -1 OFFSET ?1"
         )?;
-        let overflow: Vec<(i64, Option<String>)> = stmt.query_map(params![max_items], |row| {
-            Ok((row.get(0)?, row.get(1)?))
-        })?.filter_map(|r| r.ok()).collect();
-
-        let image_paths: Vec<String> = overflow.iter().filter_map(|(_, p)| p.clone()).collect();
-        let ids: Vec<i64> = overflow.iter().map(|(id, _)| *id).collect();
-
-        for id in ids {
-            conn.execute("DELETE FROM clipboard_items WHERE id = ?1", params![id])?;
-        }
+        let image_paths: Vec<String> = stmt
+            .query_map(params![max_items], |row| row.get::<_, Option<String>>(0))?
+            .filter_map(|r| r.ok().flatten())
+            .collect();
+        conn.execute(
+            "DELETE FROM clipboard_items WHERE id IN (SELECT id FROM clipboard_items WHERE pinned = 0 ORDER BY id DESC LIMIT -1 OFFSET ?1)",
+            params![max_items],
+        )?;
         Ok(image_paths)
     }
 
@@ -202,7 +216,9 @@ impl Database {
             "SELECT value FROM settings WHERE key = ?1",
             params![key],
             |row| row.get(0),
-        ).map(Some).or_else(|e| match e {
+        )
+        .map(Some)
+        .or_else(|e| match e {
             rusqlite::Error::QueryReturnedNoRows => Ok(None),
             other => Err(other),
         })
@@ -238,16 +254,16 @@ impl Database {
             .as_secs() as i64;
         let cutoff = now - max_age_secs;
         let mut stmt = conn.prepare(
-            "SELECT id, image_path FROM clipboard_items WHERE last_copied_at IS NULL AND created_at < ?1"
+            "SELECT image_path FROM clipboard_items WHERE last_copied_at IS NULL AND created_at < ?1 AND pinned = 0"
         )?;
-        let expired: Vec<(i64, Option<String>)> = stmt.query_map(params![cutoff], |row| {
-            Ok((row.get(0)?, row.get(1)?))
-        })?.filter_map(|r| r.ok()).collect();
-
-        let image_paths: Vec<String> = expired.iter().filter_map(|(_, p)| p.clone()).collect();
-        for (id, _) in &expired {
-            conn.execute("DELETE FROM clipboard_items WHERE id = ?1", params![id])?;
-        }
+        let image_paths: Vec<String> = stmt
+            .query_map(params![cutoff], |row| row.get::<_, Option<String>>(0))?
+            .filter_map(|r| r.ok().flatten())
+            .collect();
+        conn.execute(
+            "DELETE FROM clipboard_items WHERE last_copied_at IS NULL AND created_at < ?1 AND pinned = 0",
+            params![cutoff],
+        )?;
         Ok(image_paths)
     }
 
@@ -257,5 +273,62 @@ impl Database {
             .flatten()
             .and_then(|v| v.parse().ok())
             .unwrap_or(50)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::NamedTempFile;
+
+    fn make_db() -> (Database, NamedTempFile) {
+        let tmp = NamedTempFile::new().unwrap();
+        let db = Database::new(tmp.path()).unwrap();
+        (db, tmp)
+    }
+
+    #[test]
+    fn test_insert_and_get_by_id() {
+        let (db, _tmp) = make_db();
+        let item = db
+            .insert_item("text", Some("hello"), None, None, Some("abc123"))
+            .unwrap();
+        let found = db.get_item_by_id(item.id).unwrap();
+        assert!(found.is_some());
+        assert_eq!(found.unwrap().text_content.as_deref(), Some("hello"));
+    }
+
+    #[test]
+    fn test_get_item_by_id_missing() {
+        let (db, _tmp) = make_db();
+        assert!(db.get_item_by_id(9999).unwrap().is_none());
+    }
+
+    #[test]
+    fn test_hash_exists() {
+        let (db, _tmp) = make_db();
+        db.insert_item("text", Some("hello"), None, None, Some("abc123"))
+            .unwrap();
+        assert!(db.hash_exists("abc123"));
+        assert!(!db.hash_exists("notexist"));
+    }
+
+    #[test]
+    fn test_enforce_max_items_batch() {
+        let (db, _tmp) = make_db();
+        for i in 0..5u32 {
+            db.insert_item(
+                "text",
+                Some(&format!("item{}", i)),
+                None,
+                None,
+                Some(&format!("hash{}", i)),
+            )
+            .unwrap();
+        }
+        let removed = db.enforce_max_items(3).unwrap();
+        assert!(removed.is_empty()); // no image paths
+        let items = db.get_items(0, 10).unwrap();
+        assert_eq!(items.len(), 3);
     }
 }

@@ -54,12 +54,17 @@ fn handle_text(app: &AppHandle, clipboard: &Clipboard, db: &Arc<Database>) -> bo
         _ => return false,
     };
 
-    // Deduplication: skip if text already exists anywhere in history
-    if db.text_exists(&text) {
+    // Deduplication: hash-based
+    let text_hash = {
+        let mut hasher = Sha256::new();
+        hasher.update(text.as_bytes());
+        format!("{:x}", hasher.finalize())
+    };
+    if db.hash_exists(&text_hash) {
         return true;
     }
 
-    if let Ok(item) = db.insert_item("text", Some(&text), None, None) {
+    if let Ok(item) = db.insert_item("text", Some(&text), None, None, Some(&text_hash)) {
         let max_items = db.get_max_items();
         let removed_paths = db.enforce_max_items(max_items).unwrap_or_default();
         for path in removed_paths {
@@ -84,7 +89,7 @@ fn handle_image(app: &AppHandle, clipboard: &Clipboard, db: &Arc<Database>, imag
     };
     let hash_short = &hash[..12];
 
-    if let Ok(Some(last)) = db.get_last_item() {
+    if let Some(last) = db.get_items(0, 1).ok().and_then(|v| v.into_iter().next()) {
         if last.content_type == "image" {
             if let Some(ref path) = last.image_path {
                 if path.contains(hash_short) {
@@ -110,7 +115,7 @@ fn handle_image(app: &AppHandle, clipboard: &Clipboard, db: &Arc<Database>, imag
     let thumb_bytes = generate_thumbnail(&image_bytes).unwrap_or_default();
 
     let path_str = full_path.to_string_lossy().to_string();
-    if let Ok(item) = db.insert_item("image", None, Some(&path_str), if thumb_bytes.is_empty() { None } else { Some(&thumb_bytes) }) {
+    if let Ok(item) = db.insert_item("image", None, Some(&path_str), if thumb_bytes.is_empty() { None } else { Some(&thumb_bytes) }, Some(&hash)) {
         let max_items = db.get_max_items();
         let removed_paths = db.enforce_max_items(max_items).unwrap_or_default();
         for path in removed_paths {
