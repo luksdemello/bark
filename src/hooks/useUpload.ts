@@ -67,7 +67,7 @@ export function useUpload() {
         scheduleReset(3000);
       } catch (err) {
         setStatus("error");
-        setError(err instanceof Error ? err.message : "Upload falhou");
+        setError(err instanceof Error ? err.message : "Upload failed");
         emit("upload-progress", { progress: 0 });
         scheduleReset(4000);
       }
