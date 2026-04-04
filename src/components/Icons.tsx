@@ -97,3 +97,9 @@ export const UploadIcon = () => (
     <line x1="12" y1="3" x2="12" y2="15" />
   </svg>
 );
+
+export const PinIcon = ({ filled = false }: { filled?: boolean }) => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
+    <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17 5.8 21.3l2.4-7.4L2 9.4h7.6z" />
+  </svg>
+);

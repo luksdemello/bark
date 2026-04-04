@@ -350,6 +350,31 @@ html, body {
   transform: scale(0.92);
 }
 
+/* Pin (âmbar) */
+.action-btn.pin-btn:hover {
+  background: rgba(255, 214, 10, 0.15);
+  border-color: rgba(255, 214, 10, 0.3);
+  color: #ffd60a;
+  transform: scale(1.05);
+}
+
+.action-btn.pin-btn:active {
+  background: rgba(255, 214, 10, 0.2);
+  border-color: rgba(255, 214, 10, 0.4);
+  transform: scale(0.92);
+}
+
+.action-btn.pin-btn.pinned-active {
+  color: #ffd60a;
+}
+
+/* Selected (navegação por teclado) */
+.clipboard-item.selected {
+  background: rgba(10, 132, 255, 0.12);
+  border-color: rgba(10, 132, 255, 0.3);
+  outline: none;
+}
+
 /* --- Drop Zone --- */
 @keyframes borderPulse {
   0%, 100% {
