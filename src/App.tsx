@@ -20,7 +20,8 @@ export default function App() {
   useEffect(() => {
     if (filename) startWiggle();
     else stopWiggle();
-  }, [filename]);
+    return () => stopWiggle();
+  }, [filename, startWiggle, stopWiggle]);
 
   const handleCopy = async (id: number) => {
     await clipboardService.copyItem(id);
