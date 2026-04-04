@@ -83,7 +83,6 @@ html, body {
   display: flex;
   align-items: center;
   padding: 8px 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   flex-shrink: 0;
 }
 

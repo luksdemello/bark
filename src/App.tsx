@@ -27,6 +27,7 @@ export default function App() {
 
   // Reset selectedIndex whenever the item list changes
   useEffect(() => {
+    itemRefs.current = itemRefs.current.slice(0, displayItems.length);
     setSelectedIndex(-1);
   }, [displayItems.length]);
 
@@ -49,6 +50,13 @@ export default function App() {
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      // ⌘K — focus search
+      if (e.metaKey && e.key === "k") {
+        e.preventDefault();
+        searchRef.current?.focus();
+        return;
+      }
+
       // ⌘+1..9 — always active
       if (e.metaKey && e.key >= "1" && e.key <= "9") {
         e.preventDefault();
