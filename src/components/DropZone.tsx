@@ -26,9 +26,9 @@ export function DropZone({ filename, progress, isDragActive }: DropZoneProps) {
           <span className="dropzone-main">
             {isDragActive ? "Solte para compartilhar" : "Arraste arquivos para compartilhar"}
           </span>
-          {!isDragActive && (
-            <span className="dropzone-sub">Um link será gerado automaticamente</span>
-          )}
+          <span className={`dropzone-sub${isDragActive ? " invisible" : ""}`}>
+            Um link será gerado automaticamente
+          </span>
         </>
       )}
     </footer>

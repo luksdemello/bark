@@ -15,7 +15,7 @@
       {
         "title": "Bark",
         "label": "tray-window",
-        "width": 280,
+        "width": 380,
         "height": 354,
         "resizable": false,
         "decorations": false,

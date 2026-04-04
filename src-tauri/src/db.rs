@@ -170,6 +170,15 @@ impl Database {
         rows.collect()
     }
 
+    pub fn toggle_pin(&self, id: i64) -> Result<(), rusqlite::Error> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "UPDATE clipboard_items SET pinned = CASE WHEN pinned = 1 THEN 0 ELSE 1 END WHERE id = ?1",
+            params![id],
+        )?;
+        Ok(())
+    }
+
     pub fn delete_item(&self, id: i64) -> Result<Option<String>, rusqlite::Error> {
         let conn = self.conn.lock().unwrap();
         let image_path: Option<String> = conn

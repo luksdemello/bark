@@ -43,52 +43,27 @@ html, body {
 /* --- Header --- */
 .widget-header {
   display: flex;
+  flex-direction: row;
+
   align-items: center;
-  gap: 8px;
-  padding: 16px;
+  gap: 4px;
+  padding: 4px;
   background: rgba(255, 255, 255, 0.03);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   flex-shrink: 0;
 }
-
-.header-left {
-  display: flex;
-  align-items: center;
-}
-
-.header-info {
-  display: flex;
-  flex-direction: row;
-  align-items: end;
-  justify-content: center;
-  gap: 4px;
-}
-
-.header-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #ffffff;
-}
-
-.header-subtitle {
-  font-size: 10px;
-  color: #8e8e93;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
 /* --- Search Bar --- */
 .search-bar {
+  width: 100%;
   position: relative;
   display: flex;
   align-items: center;
   padding: 8px 12px;
-  flex-shrink: 0;
 }
 
 .search-icon {
   position: absolute;
-  left: 10px;
+  left: 20px;
   color: #636366;
   pointer-events: none;
   flex-shrink: 0;
@@ -117,7 +92,7 @@ html, body {
 
 .search-hint {
   position: absolute;
-  right: 10px;
+  right: 20px;
   color: #48484a;
   font-size: 11px;
   font-weight: 500;
@@ -127,7 +102,7 @@ html, body {
 
 .search-clear {
   position: absolute;
-  right: 8px;
+  right: 20px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
@@ -250,7 +225,6 @@ html, body {
 
 .clipboard-item.pinned {
   border-color: rgba(255, 214, 10, 0.15);
-  overflow: hidden;
 }
 
 .clipboard-item.pinned::before {
@@ -389,7 +363,6 @@ html, body {
   padding: 16px 20px;
   border: 1.5px dashed rgba(255, 255, 255, 0.15);
   border-radius: 12px;
-
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -403,6 +376,8 @@ html, body {
 
 .drop-zone:hover,
 .drop-zone.drag-over {
+  margin: 8px;
+  padding: 16px 20px;
   border-color: #0a84ff;
   background: rgba(10, 132, 255, 0.08);
   color: #f2f2f7;
@@ -417,6 +392,10 @@ html, body {
 .dropzone-sub {
   font-size: 11px;
   color: #636366;
+}
+
+.invisible {
+  visibility: hidden;
 }
 
 /* --- Empty / Loader --- */

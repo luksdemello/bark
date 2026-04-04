@@ -84,6 +84,11 @@ pub fn copy_item(
 }
 
 #[tauri::command]
+pub fn pin_item(db: State<'_, Arc<Database>>, id: i64) -> Result<(), String> {
+    db.toggle_pin(id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub fn delete_item(db: State<'_, Arc<Database>>, id: i64) -> Result<(), String> {
     if let Some(image_path) = db.delete_item(id).map_err(|e| e.to_string())? {
         fs::remove_file(&image_path).ok();

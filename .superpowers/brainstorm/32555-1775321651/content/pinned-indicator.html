@@ -1,0 +1,105 @@
+<h2>Indicador de item fixado (pinned)</h2>
+<p class="subtitle">O campo <code>pinned</code> já existe no tipo mas nunca é exibido. Como mostrar que um item está fixado?</p>
+
+<div class="cards">
+
+  <!-- Opção A: Pin no canto -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#1c1c1e;padding:12px;border-radius:8px">
+      <div style="font-family:-apple-system,sans-serif;display:flex;flex-direction:column;gap:7px">
+
+        <!-- Item pinado -->
+        <div style="background:rgba(44,44,46,0.9);border-radius:9px;border:1px solid rgba(255,215,0,0.2);padding:9px 11px;display:flex;gap:9px;align-items:flex-start;position:relative">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" stroke-width="2" style="margin-top:2px;flex-shrink:0"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+              <div style="color:#f2f2f7;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">npm install @anthropic-ai/sdk</div>
+              <div style="color:#636366;font-size:10px;white-space:nowrap">12 min</div>
+            </div>
+          </div>
+          <!-- Pin no canto superior esquerdo -->
+          <div style="position:absolute;top:-1px;left:-1px;width:20px;height:20px;background:rgba(255,215,0,0.15);border-radius:9px 0 6px 0;display:flex;align-items:center;justify-content:center">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="#ffd60a" stroke="none"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17 5.8 21.3l2.4-7.4L2 9.4h7.6z"/></svg>
+          </div>
+        </div>
+
+        <!-- Item normal -->
+        <div style="background:rgba(44,44,46,0.6);border-radius:9px;border:1px solid rgba(255,255,255,0.07);padding:9px 11px;display:flex;gap:9px;align-items:flex-start">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" stroke-width="2" style="margin-top:2px;flex-shrink:0;opacity:0.5"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+          <div style="color:#8e8e93;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">Reunião de planejamento Q2...</div>
+        </div>
+
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Estrela no canto + borda âmbar</h3>
+      <p>Mini estrela dourada no canto superior esquerdo, borda com leve âmbar. Discreto mas reconhecível.</p>
+    </div>
+  </div>
+
+  <!-- Opção B: Dot lateral -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#1c1c1e;padding:12px;border-radius:8px">
+      <div style="font-family:-apple-system,sans-serif;display:flex;flex-direction:column;gap:7px">
+
+        <!-- Item pinado -->
+        <div style="background:rgba(44,44,46,0.9);border-radius:9px;border:1px solid rgba(255,255,255,0.1);padding:9px 11px;display:flex;gap:9px;align-items:flex-start;position:relative;overflow:hidden">
+          <!-- Linha lateral -->
+          <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,#ffd60a,#ff9f0a);border-radius:9px 0 0 9px"></div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" stroke-width="2" style="margin-top:2px;flex-shrink:0;margin-left:6px"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+              <div style="color:#f2f2f7;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">npm install @anthropic-ai/sdk</div>
+              <div style="color:#636366;font-size:10px;white-space:nowrap">12 min</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item normal -->
+        <div style="background:rgba(44,44,46,0.6);border-radius:9px;border:1px solid rgba(255,255,255,0.07);padding:9px 11px;display:flex;gap:9px;align-items:flex-start">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" stroke-width="2" style="margin-top:2px;flex-shrink:0;opacity:0.5"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+          <div style="color:#8e8e93;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">Reunião de planejamento Q2...</div>
+        </div>
+
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Barra lateral âmbar (recomendado)</h3>
+      <p>Linha de 3px no lado esquerdo em gradiente dourado. Familiar para quem usa Raycast/Notion. Mínimo impacto no layout.</p>
+    </div>
+  </div>
+
+  <!-- Opção C: Tag de texto -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#1c1c1e;padding:12px;border-radius:8px">
+      <div style="font-family:-apple-system,sans-serif;display:flex;flex-direction:column;gap:7px">
+
+        <!-- Item pinado -->
+        <div style="background:rgba(44,44,46,0.9);border-radius:9px;border:1px solid rgba(255,255,255,0.1);padding:9px 11px;display:flex;gap:9px;align-items:flex-start">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" stroke-width="2" style="margin-top:2px;flex-shrink:0"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+              <div style="color:#f2f2f7;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">npm install @anthropic-ai/sdk</div>
+              <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+                <span style="background:rgba(255,214,10,0.15);color:#ffd60a;font-size:9px;font-weight:600;letter-spacing:0.5px;padding:2px 5px;border-radius:4px;border:1px solid rgba(255,214,10,0.2)">FIXADO</span>
+                <span style="color:#636366;font-size:10px;white-space:nowrap">12 min</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item normal -->
+        <div style="background:rgba(44,44,46,0.6);border-radius:9px;border:1px solid rgba(255,255,255,0.07);padding:9px 11px;display:flex;gap:9px;align-items:flex-start">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" stroke-width="2" style="margin-top:2px;flex-shrink:0;opacity:0.5"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2"/></svg>
+          <div style="color:#8e8e93;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">Reunião de planejamento Q2...</div>
+        </div>
+
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Badge "FIXADO"</h3>
+      <p>Label âmbar ao lado do timestamp. Muito explícito, ocupa espaço horizontal, pode poluir com muitos itens fixados.</p>
+    </div>
+  </div>
+
+</div>

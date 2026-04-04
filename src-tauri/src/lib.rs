@@ -26,6 +26,7 @@ pub fn run() {
             commands::search_clipboard_history,
             commands::get_item_by_id,
             commands::copy_item,
+            commands::pin_item,
             commands::delete_item,
             commands::clear_history,
             commands::get_settings,
@@ -89,6 +90,7 @@ pub fn run() {
                     if let TrayIconEvent::Click {
                         button: MouseButton::Left,
                         button_state: MouseButtonState::Up,
+                        position,
                         ..
                     } = event
                     {
@@ -98,11 +100,19 @@ pub fn run() {
                             if is_visible {
                                 let _ = window.hide();
                             } else {
-                                let _ = std::panic::catch_unwind(
-                                    std::panic::AssertUnwindSafe(|| {
-                                        let _ = window.move_window(Position::TrayBottomCenter);
-                                    }),
-                                );
+                                // Tenta usar o positioner; se falhar, posiciona manualmente
+                                // a partir das coordenadas do clique no ícone do tray.
+                                if window.move_window(Position::TrayBottomCenter).is_err() {
+                                    if let (Ok(win_size), Ok(scale)) = (
+                                        window.outer_size(),
+                                        window.scale_factor(),
+                                    ) {
+                                        let x = (position.x - win_size.width as f64 / 2.0 / scale)
+                                            .max(0.0) as i32;
+                                        let y = (position.y / scale) as i32 + 4;
+                                        let _ = window.set_position(tauri::PhysicalPosition::new(x, y));
+                                    }
+                                }
                                 #[cfg(target_os = "macos")]
                                 let _ = app.show();
                                 let _ = window.show();

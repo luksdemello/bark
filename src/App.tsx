@@ -112,42 +112,36 @@ export default function App() {
     <div className="widget">
       <header className="widget-header">
         <DogIcon ears={ears} progress={progress} />
-        <div className="header-right">
-          <div className="header-info">
-            <span className="header-title">Bark</span>
-            <span className="header-subtitle">Clipboard</span>
-          </div>
-          <div className="search-bar">
-            <svg
-              className="search-icon"
-              width="14" height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-              ref={searchRef}
-              className="search-input"
-              type="text"
-              placeholder="Buscar no clipboard..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              onFocus={() => setIsSearchFocused(true)}
-              onBlur={() => setIsSearchFocused(false)}
-            />
-            {!searchQuery && (
-              <span className="search-hint">⌘K</span>
-            )}
-            {isSearching && (
-              <button className="search-clear" onClick={() => setSearchQuery("")} title="Limpar">
-                ×
-              </button>
-            )}
-          </div>
+        <div className="search-bar">
+          <svg
+            className="search-icon"
+            width="14" height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input
+            ref={searchRef}
+            className="search-input"
+            type="text"
+            placeholder="Buscar no clipboard..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
+          />
+          {!searchQuery && (
+            <span className="search-hint">⌘K</span>
+          )}
+          {isSearching && (
+            <button className="search-clear" onClick={() => setSearchQuery("")} title="Limpar">
+              ×
+            </button>
+          )}
         </div>
       </header>
 
