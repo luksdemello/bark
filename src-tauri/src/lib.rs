@@ -10,7 +10,7 @@ use std::sync::Arc;
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Emitter, Manager, WindowEvent,
+    Emitter, Listener, Manager, WindowEvent,
 };
 use tauri_plugin_positioner::{Position, WindowExt};
 use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial, NSVisualEffectState};
@@ -112,6 +112,35 @@ pub fn run() {
                     }
                 })
                 .build(app)?;
+
+            // listener de progresso de upload → troca ícone do tray
+            let progress_app = app.handle().clone();
+            app.listen("upload-progress", move |event: tauri::Event| {
+                #[derive(serde::Deserialize)]
+                struct Payload { progress: u8 }
+
+                let Ok(payload) = serde_json::from_str::<Payload>(event.payload()) else { return };
+                let Some(tray) = progress_app.tray_by_id("bark-tray") else { return };
+
+                // arredonda para o bucket de 10 mais próximo
+                let bucket = ((payload.progress as u32 + 5) / 10 * 10).min(100);
+
+                let icon = match bucket {
+                    10  => tauri::include_image!("icons/tray_progress_10.png"),
+                    20  => tauri::include_image!("icons/tray_progress_20.png"),
+                    30  => tauri::include_image!("icons/tray_progress_30.png"),
+                    40  => tauri::include_image!("icons/tray_progress_40.png"),
+                    50  => tauri::include_image!("icons/tray_progress_50.png"),
+                    60  => tauri::include_image!("icons/tray_progress_60.png"),
+                    70  => tauri::include_image!("icons/tray_progress_70.png"),
+                    80  => tauri::include_image!("icons/tray_progress_80.png"),
+                    90  => tauri::include_image!("icons/tray_progress_90.png"),
+                    100 => tauri::include_image!("icons/tray_progress_100.png"),
+                    _   => tauri::include_image!("icons/tray_normal.png"),
+                };
+
+                tray.set_icon(Some(icon)).ok();
+            });
 
             Ok(())
         })
