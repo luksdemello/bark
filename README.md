@@ -1,5 +1,7 @@
 # Bark
 
+<img src="src-tauri/icons/128x128@2x.png" alt="Bark icon" width="128" />
+
 Um gerenciador de clipboard para macOS. Fica na barra de menus, monitora o que você copia e guarda um histórico pesquisável de textos e imagens. Também permite arrastar arquivos para fazer upload no Supabase e compartilhar via link.
 
 ## Funcionalidades
