@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { listen, emit } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { uploadAndShare } from "../services/uploadService";
+import { error as logError } from "@tauri-apps/plugin-log";
 
 interface DragDropPayload {
   paths: string[];
@@ -75,10 +76,12 @@ export function useUpload() {
         await invoke("write_text_to_clipboard", { text: signedUrl });
         scheduleReset(3000);
       } catch (err) {
+        const message = err instanceof Error ? err.message : "Upload falhou";
         setStatus("error");
-        setError(err instanceof Error ? err.message : "Upload falhou");
+        setError(message);
         emit("upload-progress", { progress: 0 });
         scheduleReset(4000);
+        logError(`Upload failed for file "${name}": ${message}`).catch(() => {});
       }
     }));
 

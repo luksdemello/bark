@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { ClipboardItem } from "../types";
 import { clipboardService } from "../services/clipboardService";
+import { error as logError } from "@tauri-apps/plugin-log";
 
 const PAGE_SIZE = 20;
 
@@ -59,11 +60,12 @@ export function useClipboard() {
     ));
     try {
       await clipboardService.pinItem(id);
-    } catch {
+    } catch (err) {
       // Revert on error
       setItems(prev => sortItems(
         prev.map(i => i.id === id ? { ...i, pinned: !i.pinned } : i)
       ));
+      logError(`pinItem failed for id=${id}: ${err instanceof Error ? err.message : String(err)}`).catch(() => {});
     }
   };
 
