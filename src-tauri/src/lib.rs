@@ -18,6 +18,25 @@ use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial, NSVisualEffectStat
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .target(tauri_plugin_log::Target::new(
+                    tauri_plugin_log::TargetKind::LogDir {
+                        file_name: Some("bark".into()),
+                    },
+                ))
+                .target(tauri_plugin_log::Target::new(
+                    tauri_plugin_log::TargetKind::Stdout,
+                ))
+                .level(if cfg!(debug_assertions) {
+                    log::LevelFilter::Debug
+                } else {
+                    log::LevelFilter::Warn
+                })
+                .max_file_size(5_000_000) // 5 MB per file
+                .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepAll)
+                .build(),
+        )
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_positioner::init())
         .plugin(tauri_plugin_clipboard::init())
@@ -41,27 +60,37 @@ pub fn run() {
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
             let app_data_dir = app.path().app_data_dir().expect("Failed to get app data dir");
-            std::fs::create_dir_all(&app_data_dir).ok();
+            log::info!("Bark starting — data dir: {}", app_data_dir.display());
+
+            if let Err(e) = std::fs::create_dir_all(&app_data_dir) {
+                log::error!("Failed to create app data dir: {}", e);
+            }
 
             let db_path = app_data_dir.join("clipboard.db");
-            let db = Arc::new(Database::new(&db_path).expect("Failed to init database"));
+            let db = Arc::new(Database::new(&db_path).unwrap_or_else(|e| {
+                log::error!("Failed to init database at {}: {}", db_path.display(), e);
+                panic!("Failed to init database: {}", e);
+            }));
             app.manage(db.clone());
 
             let images_dir: PathBuf = app_data_dir.join("images");
-            std::fs::create_dir_all(&images_dir).ok();
-            app.manage(images_dir.clone()); // available to upload_file command
+            if let Err(e) = std::fs::create_dir_all(&images_dir) {
+                log::error!("Failed to create images dir: {}", e);
+            }
+            app.manage(images_dir.clone());
 
             monitor::start(&app.handle(), db, images_dir);
 
             if let Some(window) = app.get_webview_window("tray-window") {
                 #[cfg(target_os = "macos")]
-                apply_vibrancy(
+                if let Err(e) = apply_vibrancy(
                     &window,
                     NSVisualEffectMaterial::HudWindow,
                     Some(NSVisualEffectState::Active),
                     Some(8.0),
-                )
-                .expect("Unsupported platform! 'apply_vibrancy' is only supported on macOS");
+                ) {
+                    log::warn!("Failed to apply vibrancy (non-fatal): {}", e);
+                }
 
                 let window_app = app.handle().clone();
                 window.on_window_event(move |event| {
@@ -102,8 +131,6 @@ pub fn run() {
                             if is_visible {
                                 let _ = window.hide();
                             } else {
-                                // Tenta usar o positioner; se falhar, posiciona manualmente
-                                // a partir das coordenadas do clique no ícone do tray.
                                 if window.move_window(Position::TrayBottomCenter).is_err() {
                                     if let (Ok(win_size), Ok(scale)) = (
                                         window.outer_size(),
@@ -125,7 +152,6 @@ pub fn run() {
                 })
                 .build(app)?;
 
-            // listener de progresso de upload → troca ícone do tray
             let progress_app = app.handle().clone();
             app.listen("upload-progress", move |event: tauri::Event| {
                 #[derive(serde::Deserialize)]
@@ -134,7 +160,6 @@ pub fn run() {
                 let Ok(payload) = serde_json::from_str::<Payload>(event.payload()) else { return };
                 let Some(tray) = progress_app.tray_by_id("bark-tray") else { return };
 
-                // arredonda para o bucket de 10 mais próximo
                 let bucket = ((payload.progress as u32 + 5) / 10 * 10).min(100);
 
                 let icon = match bucket {
@@ -154,6 +179,7 @@ pub fn run() {
                 tray.set_icon(Some(icon)).ok();
             });
 
+            log::info!("Bark setup complete");
             Ok(())
         })
         .run(tauri::generate_context!())
