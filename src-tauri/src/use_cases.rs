@@ -13,11 +13,18 @@ pub fn save_text(app: &AppHandle, db: &Arc<Database>, text: String) {
     let hash = sha256_hex(text.as_bytes());
 
     if db.hash_exists(&hash) {
+        log::debug!("Text already in history (duplicate), skipping");
         return;
     }
 
-    if let Ok(item) = db.insert_item("text", Some(&text), None, None, Some(&hash)) {
-        enforce_and_emit(app, db, &item);
+    match db.insert_item("text", Some(&text), None, None, Some(&hash)) {
+        Ok(item) => {
+            log::debug!("Text item saved (id={})", item.id);
+            enforce_and_emit(app, db, &item);
+        }
+        Err(e) => {
+            log::error!("Failed to save text item: {}", e);
+        }
     }
 }
 
@@ -25,6 +32,7 @@ pub fn save_image(app: &AppHandle, db: &Arc<Database>, bytes: Vec<u8>, images_di
     let hash = sha256_hex(&bytes);
 
     if db.hash_exists(&hash) {
+        log::debug!("Image already in history (duplicate), skipping");
         return;
     }
 
@@ -36,7 +44,8 @@ pub fn save_image(app: &AppHandle, db: &Arc<Database>, bytes: Vec<u8>, images_di
     let filename = format!("{}_{}.png", timestamp, hash_short);
     let full_path = images_dir.join(&filename);
 
-    if fs::write(&full_path, &bytes).is_err() {
+    if let Err(e) = fs::write(&full_path, &bytes) {
+        log::error!("Failed to write image to disk at {}: {}", full_path.display(), e);
         return;
     }
 
@@ -45,8 +54,12 @@ pub fn save_image(app: &AppHandle, db: &Arc<Database>, bytes: Vec<u8>, images_di
     let thumb = if thumb_bytes.is_empty() { None } else { Some(thumb_bytes.as_slice()) };
 
     match db.insert_item("image", None, Some(&path_str), thumb, Some(&hash)) {
-        Ok(item) => enforce_and_emit(app, db, &item),
-        Err(_) => {
+        Ok(item) => {
+            log::debug!("Image item saved (id={}, path={})", item.id, path_str);
+            enforce_and_emit(app, db, &item);
+        }
+        Err(e) => {
+            log::error!("Failed to save image item to DB: {}", e);
             fs::remove_file(&full_path).ok();
         }
     }
@@ -61,23 +74,38 @@ pub fn copy_item(
     let item = db
         .get_item_by_id(id)
         .map_err(|e| e.to_string())?
-        .ok_or_else(|| "Item not found".to_string())?;
+        .ok_or_else(|| {
+            log::warn!("copy_item: item id={} not found", id);
+            "Item not found".to_string()
+        })?;
 
     match item.content_type.as_str() {
         "text" => {
             let text = item
                 .text_content
                 .ok_or_else(|| "Text item has no content".to_string())?;
-            clipboard.write_text(text).map_err(|e| e.to_string())?;
+            clipboard.write_text(text).map_err(|e| {
+                log::error!("Failed to write text to clipboard: {}", e);
+                e.to_string()
+            })?;
         }
         "image" => {
             let path = item
                 .image_path
                 .ok_or_else(|| "Image item has no path".to_string())?;
-            let bytes = fs::read(&path).map_err(|e| e.to_string())?;
-            clipboard.write_image_binary(bytes).map_err(|e| e.to_string())?;
+            let bytes = fs::read(&path).map_err(|e| {
+                log::error!("Failed to read image file at {}: {}", path, e);
+                e.to_string()
+            })?;
+            clipboard.write_image_binary(bytes).map_err(|e| {
+                log::error!("Failed to write image to clipboard: {}", e);
+                e.to_string()
+            })?;
         }
-        _ => return Err("Unknown content type".into()),
+        other => {
+            log::warn!("copy_item: unknown content type '{}' for id={}", other, id);
+            return Err("Unknown content type".into());
+        }
     }
 
     db.mark_as_copied(id).ok();
