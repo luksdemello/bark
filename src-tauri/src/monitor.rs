@@ -19,6 +19,7 @@ pub fn start(app: &AppHandle, db: Arc<Database>, images_dir: PathBuf) {
 
     let clipboard = app.state::<Clipboard>();
     clipboard.start_monitor(app.clone()).ok();
+    log::info!("Clipboard monitor started");
 
     // Periodic cleanup: remove items not copied within 24h
     let cleanup_db = db.clone();
@@ -58,17 +59,19 @@ pub fn start(app: &AppHandle, db: Arc<Database>, images_dir: PathBuf) {
             if types.image {
                 if let Ok(bytes) = clipboard.read_image_binary() {
                     if !bytes.is_empty() {
+                        log::debug!("Image detected in clipboard ({} bytes)", bytes.len());
                         if let Err(e) = tx.try_send(ImageJob {
                             bytes,
                             images_dir: images_dir.clone(),
                         }) {
-                            eprintln!("[bark] image clipboard event dropped: {}", e);
+                            log::warn!("Image clipboard event dropped (channel full): {}", e);
                         }
                     }
                 }
             } else if types.text {
                 if let Ok(text) = clipboard.read_text() {
                     if !text.trim().is_empty() {
+                        log::debug!("Text detected in clipboard ({} chars)", text.len());
                         use_cases::save_text(&app_handle, &db, text);
                     }
                 }
@@ -77,17 +80,19 @@ pub fn start(app: &AppHandle, db: Arc<Database>, images_dir: PathBuf) {
             // Fallback when available_types() fails
             if let Ok(text) = clipboard.read_text() {
                 if !text.trim().is_empty() {
+                    log::debug!("Text detected in clipboard via fallback ({} chars)", text.len());
                     use_cases::save_text(&app_handle, &db, text);
                     return;
                 }
             }
             if let Ok(bytes) = clipboard.read_image_binary() {
                 if !bytes.is_empty() {
+                    log::debug!("Image detected in clipboard via fallback ({} bytes)", bytes.len());
                     if let Err(e) = tx.try_send(ImageJob {
                         bytes,
                         images_dir: images_dir.clone(),
                     }) {
-                        eprintln!("[bark] image clipboard event dropped: {}", e);
+                        log::warn!("Image clipboard event dropped (channel full): {}", e);
                     }
                 }
             }
