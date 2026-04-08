@@ -56,6 +56,15 @@ pub fn run() {
             commands::write_text_to_clipboard,
         ])
         .setup(|app| {
+            // Panic hook: at this point the log plugin is initialized, so we can
+            // forward panics into the log file before the process exits.
+            let prev_hook = std::panic::take_hook();
+            std::panic::set_hook(Box::new(move |info| {
+                log::error!("PANIC: {}", info);
+                log::logger().flush();
+                prev_hook(info);
+            }));
+
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
