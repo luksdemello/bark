@@ -49,7 +49,10 @@ pub fn get_clipboard_history(
 ) -> Result<Vec<ClipboardItemResponse>, String> {
     db.get_items(page, limit)
         .map(|items| items.into_iter().map(ClipboardItemResponse::from).collect())
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            log::error!("get_clipboard_history failed: {}", e);
+            e.to_string()
+        })
 }
 
 #[tauri::command]
@@ -60,7 +63,10 @@ pub fn search_clipboard_history(
 ) -> Result<Vec<ClipboardItemResponse>, String> {
     db.search_items(&query, limit)
         .map(|items| items.into_iter().map(ClipboardItemResponse::from).collect())
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            log::error!("search_clipboard_history failed: {}", e);
+            e.to_string()
+        })
 }
 
 #[tauri::command]
@@ -70,7 +76,10 @@ pub fn get_item_by_id(
 ) -> Result<Option<ClipboardItemResponse>, String> {
     db.get_item_by_id(id)
         .map(|opt| opt.map(ClipboardItemResponse::from))
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            log::error!("get_item_by_id failed for id={}: {}", id, e);
+            e.to_string()
+        })
 }
 
 #[tauri::command]
@@ -85,17 +94,26 @@ pub fn copy_item(
 
 #[tauri::command]
 pub fn pin_item(db: State<'_, Arc<Database>>, id: i64) -> Result<(), String> {
-    db.toggle_pin(id).map_err(|e| e.to_string())
+    db.toggle_pin(id).map_err(|e| {
+        log::error!("pin_item failed for id={}: {}", id, e);
+        e.to_string()
+    })
 }
 
 #[tauri::command]
 pub fn write_text_to_clipboard(clipboard: State<'_, Clipboard>, text: String) -> Result<(), String> {
-    clipboard.write_text(text).map_err(|e| e.to_string())
+    clipboard.write_text(text).map_err(|e| {
+        log::error!("write_text_to_clipboard failed: {}", e);
+        e.to_string()
+    })
 }
 
 #[tauri::command]
 pub fn delete_item(db: State<'_, Arc<Database>>, id: i64) -> Result<(), String> {
-    if let Some(image_path) = db.delete_item(id).map_err(|e| e.to_string())? {
+    if let Some(image_path) = db.delete_item(id).map_err(|e| {
+        log::error!("delete_item failed for id={}: {}", id, e);
+        e.to_string()
+    })? {
         fs::remove_file(&image_path).ok();
     }
     Ok(())
@@ -103,7 +121,10 @@ pub fn delete_item(db: State<'_, Arc<Database>>, id: i64) -> Result<(), String> 
 
 #[tauri::command]
 pub fn clear_history(db: State<'_, Arc<Database>>) -> Result<(), String> {
-    let image_paths = db.clear_all().map_err(|e| e.to_string())?;
+    let image_paths = db.clear_all().map_err(|e| {
+        log::error!("clear_history failed: {}", e);
+        e.to_string()
+    })?;
     for path in image_paths {
         fs::remove_file(&path).ok();
     }
@@ -119,7 +140,10 @@ pub fn get_settings(db: State<'_, Arc<Database>>) -> Result<serde_json::Value, S
 #[tauri::command]
 pub fn update_settings(db: State<'_, Arc<Database>>, max_items: u32) -> Result<(), String> {
     db.set_setting("max_items", &max_items.to_string())
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            log::error!("update_settings failed: {}", e);
+            e.to_string()
+        })?;
     let removed_paths = db.enforce_max_items(max_items).unwrap_or_default();
     for path in removed_paths {
         fs::remove_file(&path).ok();
