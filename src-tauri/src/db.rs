@@ -32,6 +32,7 @@ fn add_column_if_missing(conn: &Connection, sql: &str) -> Result<(), rusqlite::E
 impl Database {
     pub fn new(db_path: &Path) -> Result<Self, rusqlite::Error> {
         let conn = Connection::open(db_path)?;
+        log::info!("Database opened at {}", db_path.display());
         conn.execute_batch("PRAGMA journal_mode=WAL;")?;
         conn.execute_batch(
             "CREATE TABLE IF NOT EXISTS clipboard_items (
@@ -56,6 +57,7 @@ impl Database {
         conn.execute_batch(
             "CREATE INDEX IF NOT EXISTS idx_clipboard_hash ON clipboard_items(hash);"
         )?;
+        log::info!("Database schema ready");
         Ok(Self { conn: Mutex::new(conn) })
     }
 
