@@ -119,6 +119,39 @@ html, body {
   color: #f2f2f7;
 }
 
+/* --- Tabs --- */
+.tabs-bar {
+  display: flex;
+  gap: 4px;
+  padding: 6px 8px 0;
+  flex-shrink: 0;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 5px 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: #8e8e93;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 150ms ease;
+  white-space: nowrap;
+}
+
+.tab-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #f2f2f7;
+}
+
+.tab-btn.tab-active {
+  background: rgba(10, 132, 255, 0.15);
+  border-color: rgba(10, 132, 255, 0.3);
+  color: #0a84ff;
+}
+
 /* --- Clipboard List --- */
 .clipboard-list {
   flex: 1;

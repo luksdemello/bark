@@ -7,7 +7,17 @@ import { ClipboardListItem } from "./components/Item";
 import { DogIcon } from "./components/Icons";
 import { DropZone } from "./components/DropZone";
 import { clipboardService } from "./services/clipboardService";
+import { getDisplayType } from "./utils";
 import "./App.css";
+
+type Tab = "all" | "text" | "link" | "image";
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: "all", label: "Todos" },
+  { id: "text", label: "Textos" },
+  { id: "link", label: "Links" },
+  { id: "image", label: "Imagens" },
+];
 
 export default function App() {
   const { items, loading: clipLoading, hasMore, loadMore, deleteItem, pinItem } = useClipboard();
@@ -21,15 +31,19 @@ export default function App() {
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [activeTab, setActiveTab] = useState<Tab>("all");
 
-  const displayItems = isSearching ? searchResults : items;
+  const baseItems = isSearching ? searchResults : items;
+  const displayItems = activeTab === "all"
+    ? baseItems
+    : baseItems.filter(item => getDisplayType(item) === activeTab);
   const loading = isSearching ? searchLoading : clipLoading;
 
-  // Reset selectedIndex whenever the item list changes
+  // Reset selectedIndex whenever the item list or active tab changes
   useEffect(() => {
     itemRefs.current = itemRefs.current.slice(0, displayItems.length);
     setSelectedIndex(-1);
-  }, [displayItems.length]);
+  }, [displayItems.length, activeTab]);
 
   useEffect(() => {
     searchRef.current?.focus();
@@ -144,6 +158,18 @@ export default function App() {
           )}
         </div>
       </header>
+
+      <div className="tabs-bar">
+        {TABS.map(tab => (
+          <button
+            key={tab.id}
+            className={`tab-btn${activeTab === tab.id ? " tab-active" : ""}`}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
       <div className="clipboard-list" ref={listRef} onScroll={onScroll}>
         {displayItems.length === 0 && !loading && (
